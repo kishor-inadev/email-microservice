@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const validateEnvVariables = () => {
-  const requiredVars = ['EMAIL_USER', 'EMAIL_HOST', 'EMAIL_PORT'];
+  const requiredVars = ['SMTP_USER', 'SMTP_HOST', 'SMTP_PORT'];
   if (process.env.EMAIL_SERVICE) {
     return; // Service-based providers may not need host/port
   }

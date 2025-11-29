@@ -106,7 +106,7 @@ const kafkaMessageSchema = Joi.object({
     .optional(),
 
   requestId: Joi.string().required(),
-  timestamp: Joi.string().isoDate().required(),
+  // timestamp: Joi.string().isoDate().required(),
   retryCount: Joi.number().integer().min(0).optional()
 }).or('template', 'templateId');
 

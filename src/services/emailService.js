@@ -38,40 +38,57 @@ class EmailService {
   }
 
   /**
-   * Load and cache template
+   * Load and cache template (from one master template file)
    */
   async loadTemplate(templateName) {
-    if (this.templateCache.has(templateName)) {
-      return this.templateCache.get(templateName);
-    }
-
-    const templateDir = process.env.TEMPLATE_DIR || 'src/templates';
-    const templatePath = path.join(process.cwd(), templateDir, `${templateName}.js`);
-
     try {
-      // Check if template file exists
+      // If template was loaded before, use cached
+      if (this.templateCache.has(templateName)) {
+        return this.templateCache.get(templateName);
+      }
+
+      const templateFile = process.env.TEMPLATE_FILE || 'src/templates/emailTemplate.js';
+      const templatePath = path.join(process.cwd(), templateFile);
+
+      // Check file exists
       await fs.access(templatePath);
 
-      // Clear require cache to allow hot reloading
+      // Clear require cache so updates reflect instantly during dev
       delete require.cache[require.resolve(templatePath)];
 
-      // Load template
-      const template = require(templatePath);
+      // Load all templates
+      const templates = require(templatePath);
+
+      if (!templates || typeof templates !== 'object') {
+        throw new Error('emailTemplate.js must export an object of template functions');
+      }
+
+      // Extract specific template
+      const template = templates[templateName];
+
+      if (!template) {
+        throw new Error(`Template not found in emailTemplate.js → ${templateName}`);
+      }
 
       if (typeof template !== 'function') {
-        throw new Error(`Template ${templateName} must export a function`);
+        throw new Error(`Template "${templateName}" must be a function`);
       }
 
-      // Cache template
+      // Cache this template for future use
       this.templateCache.set(templateName, template);
 
-      logger.debug('Template loaded and cached', { templateName, templatePath });
+      logger.debug('Template loaded from master file', {
+        templateName,
+        templatePath
+      });
+
       return template;
     } catch (error) {
-      if (error.code === 'ENOENT') {
-        throw new Error(`Template not found: ${templateName}`);
-      }
-      throw new Error(`Failed to load template ${templateName}: ${error.message}`);
+      logger.error('Failed to load template', {
+        templateName,
+        error: error.message
+      });
+      throw error;
     }
   }
 
@@ -81,9 +98,9 @@ class EmailService {
   async renderTemplate(templateName, data) {
     try {
       const template = await this.loadTemplate(templateName);
+
       const rendered = template(data);
 
-      // Validate rendered output
       if (!rendered || typeof rendered !== 'object') {
         throw new Error('Template must return an object');
       }
@@ -91,10 +108,10 @@ class EmailService {
       const { subject, html, text } = rendered;
 
       if (!subject || !html) {
-        throw new Error('Template must return object with subject and html properties');
+        throw new Error(`Template "${templateName}" must return { subject, html, text? }`);
       }
 
-      return { subject, html, text: text || '' };
+      return { subject, html, text: text || '', attachments: rendered.attachments || [] };
     } catch (error) {
       logger.error('Template rendering failed', {
         templateName,

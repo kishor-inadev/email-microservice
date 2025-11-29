@@ -1,6 +1,5 @@
-const { host, resetPath, confirmPath, loginPath } = require('../config/setting');
-const { formatRelativeDuration } = require('../utils/helper');
-const { appUrl, applicaionName, frontendUrl } = require('./');
+const { host,frontendUrl,appUrl,applicaionName } = require('../config/setting');
+
 
 /**
  * =====================================================================================
