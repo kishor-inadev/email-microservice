@@ -211,9 +211,9 @@ class EmailService {
 
   /** Send email */
   async sendEmail(payload) {
-    const { to, from, template, templateId, data = {}, cc, bcc, attachments } = payload;
+    const { to, from, templateId,type, data = {}, cc, bcc, attachments } = payload;
 
-    const templateName = templateId || template;
+    const templateName = templateId||type;
 
     const { subject, html, text } = await this.renderTemplate(templateName, data);
 
