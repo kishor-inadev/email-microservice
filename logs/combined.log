@@ -1372,3 +1372,68 @@
   message: 'Email sent successfully via Kafka',
   timestamp: '2025-11-30 00:15:41.067'
 }
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-11-30 00:16:29.147'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-11-30 00:16:29.237'
+}
+{
+  message: 'Kafka consumer connected',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:16:29.304'
+}
+{
+  message: 'Kafka producer connected',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:16:29.329'
+}
+{
+  message: 'Kafka consumer started listening for messages',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:16:56.121'
+}
+{
+  message: 'Kafka consumer started successfully',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:16:56.122'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 23556,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-11-30 00:16:56.131'
+}
