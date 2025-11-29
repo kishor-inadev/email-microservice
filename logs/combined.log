@@ -1173,3 +1173,91 @@
   environment: 'development',
   timestamp: '2025-11-30 00:06:32.738'
 }
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-11-30 00:06:37.667'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-11-30 00:06:37.719'
+}
+{
+  message: 'Kafka consumer connected',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:06:37.763'
+}
+{
+  message: 'Kafka producer connected',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:06:37.774'
+}
+{
+  message: 'Kafka consumer started listening for messages',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:07:32.057'
+}
+{
+  message: 'Kafka consumer started successfully',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-30 00:07:32.058'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 24060,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-11-30 00:07:32.068'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  to: 'pa***@daouse.com',
+  template: 'welcomeEmailTemplate',
+  level: 'info',
+  message: 'Email sent',
+  timestamp: '2025-11-30 00:10:26.979'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: '692b3e14872592cc9be6e178',
+  messageId: '<26d9d8b2-1260-fb3a-6913-683f57ce99ce@easydev.in>',
+  to: 'pa***@daouse.com',
+  template: 'welcomeEmailTemplate',
+  retryCount: 0,
+  level: 'info',
+  message: 'Email sent successfully via Kafka',
+  timestamp: '2025-11-30 00:10:26.995'
+}
