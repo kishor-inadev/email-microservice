@@ -2,6 +2,15 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs').promises;
 const logger = require('../utils/logger');
+const { OAuth2Client } = require('google-auth-library');
+
+const metrics = {
+  connectionAttempts: 0,
+  connectionSuccesses: 0,
+  connectionFailures: 0,
+  emailsSent: 0,
+  emailsFailed: 0
+};
 
 class EmailService {
   constructor() {
@@ -10,244 +19,260 @@ class EmailService {
     this.initializeTransporter();
   }
 
-  /**
-   * Initialize nodemailer transporter
-   */
-  initializeTransporter() {
+  /** Validate ENV variables */
+  validateEnvVariables(options = {}) {
+    const requiredVars = ['EMAIL_USER', 'EMAIL_HOST', 'EMAIL_PORT'];
+
+    if (options.service && !options.host && !options.port) return;
+
+    const missingVars = requiredVars.filter(v => !process.env[v] && !options[v.toLowerCase()]);
+
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+  }
+
+  /** Initialize transporter */
+  initializeTransporter(options = {}) {
+    this.validateEnvVariables(options);
+
+    const isGmail = options.service === 'gmail' || process.env.EMAIL_SERVICE === 'gmail';
+
+    /** Base SMTP config */
     const config = {
-      host: process.env.SMTP_HOST || 'localhost',
-      port: parseInt(process.env.SMTP_PORT) || 1025,
-      secure: process.env.SMTP_SECURE === 'true'
+      ...(options.service || process.env.EMAIL_SERVICE
+        ? { service: options.service || process.env.EMAIL_SERVICE }
+        : {}),
+      host: options.host || process.env.EMAIL_HOST,
+      port: parseInt(options.port || process.env.EMAIL_PORT) || 587,
+      secure: options.secure || process.env.EMAIL_SECURE === 'true' || false,
+      pool: true,
+      maxConnections: parseInt(process.env.EMAIL_MAX_CONNECTIONS) || 5,
+      maxMessages: parseInt(process.env.EMAIL_MAX_MESSAGES) || 100,
+      tls: {
+        rejectUnauthorized: process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false',
+        minVersion: process.env.EMAIL_TLS_MIN_VERSION || 'TLSv1.2'
+      },
+      logger: process.env.EMAIL_DEBUG === 'true' ? console : false,
+      debug: process.env.EMAIL_DEBUG === 'true'
     };
 
-    // Add authentication if credentials are provided
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    /** AUTH CONFIG */
+
+    // OAuth2 ONLY for Gmail
+    if (
+      isGmail &&
+      process.env.OAUTH2_CLIENT_ID &&
+      process.env.OAUTH2_CLIENT_SECRET &&
+      process.env.OAUTH2_REFRESH_TOKEN
+    ) {
       config.auth = {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        type: 'OAuth2',
+        user: options.user || process.env.EMAIL_USER,
+        clientId: process.env.OAUTH2_CLIENT_ID,
+        clientSecret: process.env.OAUTH2_CLIENT_SECRET,
+        refreshToken: process.env.OAUTH2_REFRESH_TOKEN
+      };
+
+      // Generate access token on the fly
+      config.auth.accessToken = async () => {
+        const oauth2Client = new OAuth2Client(
+          process.env.OAUTH2_CLIENT_ID,
+          process.env.OAUTH2_CLIENT_SECRET,
+          process.env.OAUTH2_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
+        );
+
+        oauth2Client.setCredentials({
+          refresh_token: process.env.OAUTH2_REFRESH_TOKEN
+        });
+
+        const { token } = await oauth2Client.getAccessToken();
+        return token;
+      };
+    } else {
+      // NORMAL SMTP LOGIN
+      config.auth = {
+        user: options.user || process.env.EMAIL_USER,
+        pass: options.pass || process.env.EMAIL_PASS
       };
     }
 
     this.transporter = nodemailer.createTransport(config);
+
     logger.info('Email transporter initialized', {
       host: config.host,
       port: config.port,
       secure: config.secure,
-      hasAuth: !!config.auth
+      isGmailOAuth2: isGmail
     });
   }
 
-  /**
-   * Load and cache template (from one master template file)
-   */
+  /** Fallback transporter (optional) */
+  createFallbackTransporter() {
+    if (!process.env.FALLBACK_EMAIL_HOST && !process.env.FALLBACK_EMAIL_SERVICE) return null;
+
+    return (this.transporter = nodemailer.createTransport({
+      service: process.env.FALLBACK_EMAIL_SERVICE,
+      host: process.env.FALLBACK_EMAIL_HOST,
+      port: process.env.FALLBACK_EMAIL_PORT,
+      secure: process.env.FALLBACK_EMAIL_SECURE === 'true',
+      auth: {
+        user: process.env.FALLBACK_EMAIL_USER,
+        pass: process.env.FALLBACK_EMAIL_PASS
+      }
+    }));
+  }
+
+  /** Verify transporter */
+  async verifyEmailConnection(retries = 3, baseDelay = 2000) {
+    let attempts = 0;
+    metrics.connectionAttempts++;
+
+    while (attempts < retries) {
+      try {
+        await this.transporter.verify();
+        metrics.connectionSuccesses++;
+        return { success: true, message: '✅ Email service is ready', metrics };
+      } catch (error) {
+        attempts++;
+        metrics.connectionFailures++;
+
+        if (attempts === retries) {
+          const fallback = this.createFallbackTransporter();
+
+          if (fallback) {
+            try {
+              await fallback.verify();
+              return {
+                success: true,
+                message: 'Fallback email service verified',
+                metrics
+              };
+            } catch (fallbackError) {
+              return {
+                success: false,
+                error: fallbackError.message,
+                metrics
+              };
+            }
+          }
+
+          return {
+            success: false,
+            error: error.message,
+            metrics
+          };
+        }
+
+        await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempts - 1)));
+      }
+    }
+  }
+
+  /** Load template */
   async loadTemplate(templateName) {
     try {
-      // If template was loaded before, use cached
-      if (this.templateCache.has(templateName)) {
-        return this.templateCache.get(templateName);
-      }
+      if (this.templateCache.has(templateName)) return this.templateCache.get(templateName);
 
       const templateFile = process.env.TEMPLATE_FILE || 'src/templates/emailTemplate.js';
       const templatePath = path.join(process.cwd(), templateFile);
 
-      // Check file exists
       await fs.access(templatePath);
 
-      // Clear require cache so updates reflect instantly during dev
       delete require.cache[require.resolve(templatePath)];
 
-      // Load all templates
       const templates = require(templatePath);
 
-      if (!templates || typeof templates !== 'object') {
-        throw new Error('emailTemplate.js must export an object of template functions');
-      }
-
-      // Extract specific template
       const template = templates[templateName];
 
       if (!template) {
-        throw new Error(`Template not found in emailTemplate.js → ${templateName}`);
+        throw new Error(`Template not found: ${templateName}`);
       }
 
-      if (typeof template !== 'function') {
-        throw new Error(`Template "${templateName}" must be a function`);
-      }
-
-      // Cache this template for future use
       this.templateCache.set(templateName, template);
-
-      logger.debug('Template loaded from master file', {
-        templateName,
-        templatePath
-      });
-
       return template;
     } catch (error) {
-      logger.error('Failed to load template', {
-        templateName,
+      logger.error('Template load failed', { templateName, error: error.message });
+      throw error;
+    }
+  }
+
+  /** Render template */
+  async renderTemplate(templateName, data) {
+    const template = await this.loadTemplate(templateName);
+    const rendered = template(data);
+
+    if (!rendered.subject || !rendered.html) {
+      throw new Error('Template must return subject & html');
+    }
+
+    return rendered;
+  }
+
+  /** Send email */
+  async sendEmail(payload) {
+    const { to, from, template, templateId, data = {}, cc, bcc, attachments } = payload;
+
+    const templateName = templateId || template;
+
+    const { subject, html, text } = await this.renderTemplate(templateName, data);
+
+    const mailOptions = {
+      from:
+        from || `${process.env.DEFAULT_FROM_NAME || 'Company'} <${process.env.DEFAULT_FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+      text,
+      cc,
+      bcc,
+      attachments
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+
+      logger.info('Email sent', {
+        to: this.sanitizeEmailForLog(to),
+        template: templateName
+      });
+
+      return {
+        success: true,
+        messageId: info.messageId
+      };
+    } catch (error) {
+      logger.error('Email sending failed', {
+        to: this.sanitizeEmailForLog(to),
         error: error.message
       });
       throw error;
     }
   }
 
-  /**
-   * Render email template
-   */
-  async renderTemplate(templateName, data) {
-    try {
-      const template = await this.loadTemplate(templateName);
-
-      const rendered = template(data);
-
-      if (!rendered || typeof rendered !== 'object') {
-        throw new Error('Template must return an object');
-      }
-
-      const { subject, html, text } = rendered;
-
-      if (!subject || !html) {
-        throw new Error(`Template "${templateName}" must return { subject, html, text? }`);
-      }
-
-      return { subject, html, text: text || '', attachments: rendered.attachments || [] };
-    } catch (error) {
-      logger.error('Template rendering failed', {
-        templateName,
-        error: error.message,
-        data: this.sanitizeLogData(data)
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Send email
-   */
-  async sendEmail(emailPayload) {
-    const {
-      to,
-      from,
-      template,
-      templateId,
-      data = {},
-      cc,
-      bcc,
-      attachments,
-      requestId
-    } = emailPayload;
-
-    // Use templateId if provided, otherwise fall back to template
-    const templateName = templateId || template;
-
-    if (!templateName) {
-      throw new Error('Either template or templateId must be provided');
-    }
-
-    try {
-      // Render template
-      const { subject, html, text } = await this.renderTemplate(templateName, data);
-
-      // Prepare email options
-      const mailOptions = {
-        from:
-          from ||
-          `${process.env.DEFAULT_FROM_NAME || 'Company'} <${process.env.DEFAULT_FROM_EMAIL}>`,
-        to,
-        subject,
-        html,
-        text,
-        cc,
-        bcc,
-        attachments
-      };
-
-      // Send email
-      const info = await this.transporter.sendMail(mailOptions);
-
-      logger.info('Email sent successfully', {
-        requestId,
-        messageId: info.messageId,
-        to: this.sanitizeEmailForLog(to),
-        template: templateName,
-        accepted: info.accepted?.length || 0,
-        rejected: info.rejected?.length || 0
-      });
-
-      return {
-        success: true,
-        messageId: info.messageId,
-        accepted: info.accepted,
-        rejected: info.rejected
-      };
-    } catch (error) {
-      logger.error('Email sending failed', {
-        requestId,
-        error: error.message,
-        to: this.sanitizeEmailForLog(to),
-        template: templateName,
-        stack: error.stack
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Verify transporter connection
-   */
+  /** Verify */
   async verifyConnection() {
     try {
       await this.transporter.verify();
-      logger.info('Email transporter connection verified');
       return true;
-    } catch (error) {
-      logger.error('Email transporter verification failed', { error: error.message });
+    } catch (e) {
       return false;
     }
   }
 
-  /**
-   * Clear template cache
-   */
+  /** Clear template cache */
   clearTemplateCache() {
     this.templateCache.clear();
-    logger.info('Template cache cleared');
   }
 
-  /**
-   * Sanitize email addresses for logging (privacy)
-   */
+  /** Utility */
   sanitizeEmailForLog(email) {
-    if (!email) return email;
+    if (!email) return '';
     if (typeof email === 'string') {
       const [user, domain] = email.split('@');
-      return `${user.substring(0, 2)}***@${domain}`;
-    }
-    if (Array.isArray(email)) {
-      return email.map(e => this.sanitizeEmailForLog(e));
+      return `${user.slice(0, 2)}***@${domain}`;
     }
     return email;
-  }
-
-  /**
-   * Sanitize data for logging (remove sensitive information)
-   */
-  sanitizeLogData(data) {
-    if (!data || typeof data !== 'object') return data;
-
-    const sanitized = { ...data };
-
-    // Remove common sensitive fields
-    const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth', 'credential'];
-
-    for (const field of sensitiveFields) {
-      if (sanitized[field]) {
-        sanitized[field] = '[REDACTED]';
-      }
-    }
-
-    return sanitized;
   }
 }
 

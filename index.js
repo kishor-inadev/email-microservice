@@ -1,5 +1,4 @@
 const dotenv = require('dotenv');
-const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -8,6 +7,7 @@ const express = require('express');
 const logger = require('./src/utils/logger');
 const { startKafkaConsumer } = require('./src/kafka/consumer');
 const api = require('./src/api');
+const emailService = require('./src/services/emailService');
 
 const PORT = process.env.PORT || 3000;
 
@@ -25,6 +25,8 @@ async function startServer() {
 
     // Start HTTP server
     const server = app.listen(PORT, () => {
+      emailService.verifyEmailConnection().then(result => console.log(result.message));
+
       logger.info(`Email microservice running on port ${PORT}`, {
         port: PORT,
         environment: process.env.NODE_ENV,
