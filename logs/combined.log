@@ -479,3 +479,205 @@
   environment: 'development',
   timestamp: '2025-11-29 21:37:18.570'
 }
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  hasAuth: true,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-11-29 21:38:10.153'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-11-29 21:38:10.209'
+}
+{
+  message: 'Kafka consumer connected',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-29 21:38:10.254'
+}
+{
+  message: 'Kafka producer connected',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-29 21:38:10.265'
+}
+{
+  message: 'Kafka consumer started listening for messages',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-29 21:38:13.290'
+}
+{
+  message: 'Kafka consumer started successfully',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-11-29 21:38:13.291'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 18516,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-11-29 21:38:17.798'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'p9znu3jzw',
+  method: 'GET',
+  path: '/',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+  ip: '::1',
+  level: 'info',
+  message: 'Incoming request',
+  timestamp: '2025-11-29 21:39:28.698'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'p9znu3jzw',
+  method: 'GET',
+  path: '/',
+  level: 'warn',
+  message: 'Route not found',
+  timestamp: '2025-11-29 21:39:28.700'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'p9znu3jzw',
+  method: 'GET',
+  path: '/',
+  statusCode: 404,
+  responseTime: 6,
+  level: 'info',
+  message: 'Request completed',
+  timestamp: '2025-11-29 21:39:28.706'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'nz7s4j2nu',
+  method: 'GET',
+  path: '/favicon.ico',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+  ip: '::1',
+  level: 'info',
+  message: 'Incoming request',
+  timestamp: '2025-11-29 21:39:28.772'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'nz7s4j2nu',
+  method: 'GET',
+  path: '/favicon.ico',
+  level: 'warn',
+  message: 'Route not found',
+  timestamp: '2025-11-29 21:39:28.774'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'nz7s4j2nu',
+  method: 'GET',
+  path: '/favicon.ico',
+  statusCode: 404,
+  responseTime: 2,
+  level: 'info',
+  message: 'Request completed',
+  timestamp: '2025-11-29 21:39:28.776'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'rv70hs0wl',
+  method: 'GET',
+  path: '/helth',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+  ip: '::1',
+  level: 'info',
+  message: 'Incoming request',
+  timestamp: '2025-11-29 21:39:40.856'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'rv70hs0wl',
+  method: 'GET',
+  path: '/helth',
+  level: 'warn',
+  message: 'Route not found',
+  timestamp: '2025-11-29 21:39:40.858'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'rv70hs0wl',
+  method: 'GET',
+  path: '/helth',
+  statusCode: 404,
+  responseTime: 2,
+  level: 'info',
+  message: 'Request completed',
+  timestamp: '2025-11-29 21:39:40.860'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'uyow7gjku',
+  method: 'GET',
+  path: '/health',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+  ip: '::1',
+  level: 'info',
+  message: 'Incoming request',
+  timestamp: '2025-11-29 21:40:05.002'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  requestId: 'uyow7gjku',
+  method: 'GET',
+  path: '/health',
+  statusCode: 200,
+  responseTime: 1,
+  level: 'info',
+  message: 'Request completed',
+  timestamp: '2025-11-29 21:40:05.005'
+}
