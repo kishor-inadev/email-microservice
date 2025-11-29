@@ -20,9 +20,9 @@ module.exports = function setupAPI(app) {
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
-    legacyHeaders: false,
+    legacyHeaders: false
   });
-  
+
   app.use('/send-email', limiter);
 
   // Body parser
@@ -33,7 +33,7 @@ module.exports = function setupAPI(app) {
   app.use((req, res, next) => {
     const requestId = Math.random().toString(36).substr(2, 9);
     req.requestId = requestId;
-    
+
     logger.info('Incoming request', {
       requestId,
       method: req.method,
@@ -72,7 +72,7 @@ module.exports = function setupAPI(app) {
 
   // Email endpoints
   app.post('/send-email', emailController.sendEmail);
-  
+
   // Synchronous email endpoint (for testing)
   if (process.env.ENABLE_SYNC_ENDPOINT === 'true') {
     app.post('/send-email/sync', emailController.sendEmailSync);

@@ -1,7 +1,8 @@
 const { host, resetPath, confirmPath, loginPath } = require('../config/setting');
 const { formatRelativeDuration } = require('../utils/helper');
 const { appUrl, applicaionName, frontendUrl } = require('./');
-/*
+
+/**
  * =====================================================================================
  * 🏢 ENTERPRISE EMAIL TEMPLATE LIBRARY v2.0 - PRODUCTION READY
  * =====================================================================================
