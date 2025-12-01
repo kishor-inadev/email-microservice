@@ -4,6 +4,7 @@ const emailService = require('../services/emailService');
 const { publishEmailSuccess, publishEmailFailure } = require('./producer');
 const { incrementMetric } = require('../controllers/emailController');
 const validator = require('../utils/validator');
+const mongoService = require('../services/mongoService');
 
 class KafkaConsumer {
   constructor() {
@@ -106,9 +107,29 @@ class KafkaConsumer {
 
   async sendEmailWithRetry(emailPayload, retryCount = 0) {
     try {
-      // const r= await emailService.sendEmail(emailPayload);
-      // console.log(r); 
+      // Update status to retrying if this is a retry
+      if (retryCount > 0 && mongoService.isConnected()) {
+        await mongoService.updateEmailLog(emailPayload.requestId, {
+          status: 'retrying',
+          retryCount
+        });
+      }
+
       const result = await emailService.sendEmail(emailPayload);
+
+      // Update MongoDB with success
+      if (mongoService.isConnected()) {
+        await mongoService.updateEmailLog(emailPayload.requestId, {
+          status: 'sent',
+          messageId: result.messageId,
+          sentAt: new Date(),
+          retryCount,
+          metadata: {
+            accepted: result.accepted,
+            rejected: result.rejected
+          }
+        });
+      }
 
       // Success - publish success message
       await publishEmailSuccess(emailPayload, result);
@@ -128,39 +149,34 @@ class KafkaConsumer {
       const shouldRetry = retryCount < this.retryLimit && isRetryableError;
 
       if (shouldRetry) {
-        // Increment retry count and wait before retrying
         const nextRetryCount = retryCount + 1;
         const backoffMs = this.calculateBackoff(nextRetryCount);
 
-        // logger.warn('Email sending failed, retrying', {
-        //   requestId: emailPayload.requestId,
-        //   error: error.message,
-        //   retryCount: nextRetryCount,
-        //   maxRetries: this.retryLimit,
-        //   backoffMs
-        // });
-
         incrementMetric('emailsRetried');
 
-        // Wait before retry
         await this.sleep(backoffMs);
 
-        // Retry
         return await this.sendEmailWithRetry(emailPayload, nextRetryCount);
       } else {
+        // Update MongoDB with failure
+        if (mongoService.isConnected()) {
+          await mongoService.updateEmailLog(emailPayload.requestId, {
+            status: 'failed',
+            failedAt: new Date(),
+            retryCount,
+            error: {
+              message: error.message,
+              code: error.code
+            }
+          });
+        }
+
         // Max retries reached or non-retryable error - publish to failed topic
         await publishEmailFailure(emailPayload, error, retryCount);
 
         incrementMetric('emailsFailed');
         incrementMetric('emailsProcessed');
 
-        // logger.error('Email sending failed permanently', {
-        //   requestId: emailPayload.requestId,
-        //   error: error.message,
-        //   retryCount,
-        //   maxRetries: this.retryLimit,
-        //   isRetryableError
-        // });
         console.log(error);
 
         throw error;
