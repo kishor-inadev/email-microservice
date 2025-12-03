@@ -147,7 +147,7 @@ const USER_CREATED = ({ userId, username, email, timestamp }) => {
             <strong style="color:#111827;">Account Details:</strong><br/>
             <span style="color:#6b7280;">User ID:</span> <strong style="color:#111827;">${userId}</strong><br/>
             <span style="color:#6b7280;">Email:</span> <strong style="color:#111827;">${email}</strong><br/>
-            <span style="color:#6b7280;">Created:</span> <strong style="color:#111827;">${new Date().toLocaleString()}</strong>
+            <span style="color:#6b7280;">Created:</span> <strong style="color:#111827;">${new Date(timestamp).toLocaleString()}</strong>
           </td></tr>
         </table>
         
