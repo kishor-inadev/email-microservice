@@ -66,14 +66,14 @@ class KafkaConsumer {
         return; // Skip invalid messages
       }
 
-      // logger.info('Processing email message from Kafka', {
-      //   requestId: emailPayload.requestId,
-      //   to: emailService.sanitizeEmailForLog(emailPayload.to),
-      //   template: emailPayload.templateId || emailPayload.template,
-      //   topic,
-      //   partition,
-      //   offset: message.offset
-      // });
+      logger.info('Processing email message from Kafka', {
+        requestId: emailPayload.requestId,
+        to: emailService.sanitizeEmailForLog(emailPayload.to),
+        template: emailPayload.templateId || emailPayload.template,
+        topic,
+        partition,
+        offset: message.offset
+      });
 
       // Send email with retry logic
       await this.sendEmailWithRetry(emailPayload);
@@ -81,15 +81,14 @@ class KafkaConsumer {
       // Call heartbeat to keep consumer alive
       await heartbeat();
     } catch (error) {
-      // logger.error('Failed to process Kafka message', {
-      //   error: error.message,
-      //   stack: error.stack,
-      //   topic,
-      //   partition,
-      //   offset: message.offset,
-      //   messageValue: messageValue?.substring(0, 500) // Log first 500 chars for debugging
-      // });
-      console.log(error);
+      logger.error('Failed to process Kafka message', {
+        error: error.message,
+        stack: error.stack,
+        topic,
+        partition,
+        offset: message.offset,
+        messageValue: messageValue?.substring(0, 500) // Log first 500 chars for debugging
+      });
 
       // If we have a valid payload, publish to failed topic
       if (emailPayload) {
@@ -177,7 +176,11 @@ class KafkaConsumer {
         incrementMetric('emailsFailed');
         incrementMetric('emailsProcessed');
 
-        console.log(error);
+        logger.error('Email sending failed after retries', {
+          requestId: emailPayload.requestId,
+          error: error.message,
+          retryCount
+        });
 
         throw error;
       }
