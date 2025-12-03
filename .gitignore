@@ -2,4 +2,3 @@ node_modules
 .env
 logs
 docker-compose.yml
-/docker-compose.yml
