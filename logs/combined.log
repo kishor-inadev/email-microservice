@@ -1437,3 +1437,715 @@
   message: 'Email microservice running on port 3550',
   timestamp: '2025-11-30 00:16:56.131'
 }
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-01 16:00:08.905'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-01 16:00:08.995'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:00:15.027'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-01 16:00:48.048'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-01 16:00:48.101'
+}
+{
+  message: 'Kafka consumer started successfully',
+  level: 'info',
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  timestamp: '2025-12-01 16:00:48.128'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 16496,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-12-01 16:00:48.135'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:00:56.360'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-01 16:01:59.365'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-01 16:01:59.424'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 15176,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-12-01 16:01:59.455'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:02:09.147'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-01 16:02:17.392'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-01 16:02:17.492'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 1956,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-12-01 16:02:17.506'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:02:28.428'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-01 16:03:44.472'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-01 16:03:44.576'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 10780,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-12-01 16:03:44.591'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:03:57.274'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-01 16:04:43.960'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-01 16:04:43.965'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 5080,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-12-01 16:04:43.979'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-01 16:04:50.853'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-01 16:04:50.857'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  port: '3550',
+  processId: 7460,
+  level: 'info',
+  message: 'Email microservice running on port 3550',
+  timestamp: '2025-12-01 16:04:50.870'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:00:42.893'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-04 01:00:42.957'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  stack: 'KafkaJSNonRetriableError\n' +
+    '  Caused by: KafkaJSConnectionError: Connection error: \n' +
+    '    at Socket.onError (C:\\Users\\kisho\\WorkSpace\\Backend\\email-microservice\\node_modules\\kafkajs\\src\\network\\connection.js:210:23)\n' +
+    '    at Socket.emit (node:events:519:28)\n' +
+    '    at emitErrorNT (node:internal/streams/destroy:170:8)\n' +
+    '    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)',
+  level: 'error',
+  message: 'Failed to start Kafka consumer',
+  timestamp: '2025-12-04 01:00:48.682'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:00:55.858'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:01:38.470'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:01:44.851'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:02:27.390'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:02:46.883'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:07:27.142'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:07:40.642'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:07:54.350'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:08:03.682'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:09:04.957'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:09:59.237'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:10:01.239'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:10:25.080'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:10:51.373'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:11:12.978'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:12:03.750'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:12:14.647'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:13:24.636'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:14:02.238'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:14:11.989'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:14:16.306'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:14:44.722'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:15:14.937'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:15:24.311'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:15:27.646'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:15:51.491'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:15:54.629'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:15:58.451'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:16:14.450'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:16:54.856'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  isGmailOAuth2: false,
+  level: 'info',
+  message: 'Email transporter initialized',
+  timestamp: '2025-12-04 01:16:58.350'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  ttl: 3600000,
+  cleanupInterval: 300000,
+  implementation: 'in-memory',
+  level: 'info',
+  message: 'Idempotency store initialized',
+  timestamp: '2025-12-04 01:16:58.402'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  stack: 'KafkaJSNonRetriableError\n' +
+    '  Caused by: KafkaJSConnectionError: Connection error: \n' +
+    '    at Socket.onError (C:\\Users\\kisho\\WorkSpace\\Backend\\email-microservice\\node_modules\\kafkajs\\src\\network\\connection.js:210:23)\n' +
+    '    at Socket.emit (node:events:519:28)\n' +
+    '    at emitErrorNT (node:internal/streams/destroy:170:8)\n' +
+    '    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)',
+  level: 'error',
+  message: 'Failed to start Kafka consumer',
+  timestamp: '2025-12-04 01:17:07.436'
+}

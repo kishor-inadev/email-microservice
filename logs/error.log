@@ -64,3 +64,80 @@
   message: 'Failed to start Kafka consumer',
   timestamp: '2025-11-30 00:05:31.570'
 }
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:00:15.027'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:00:56.360'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:02:09.147'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:02:28.428'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  level: 'error',
+  message: 'Failed to connect Kafka producer',
+  timestamp: '2025-12-01 16:03:57.274'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  stack: 'KafkaJSNonRetriableError\n' +
+    '  Caused by: KafkaJSConnectionError: Connection error: \n' +
+    '    at Socket.onError (C:\\Users\\kisho\\WorkSpace\\Backend\\email-microservice\\node_modules\\kafkajs\\src\\network\\connection.js:210:23)\n' +
+    '    at Socket.emit (node:events:519:28)\n' +
+    '    at emitErrorNT (node:internal/streams/destroy:170:8)\n' +
+    '    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)',
+  level: 'error',
+  message: 'Failed to start Kafka consumer',
+  timestamp: '2025-12-04 01:00:48.682'
+}
+{
+  service: 'email-microservice',
+  version: '1.0.0',
+  environment: 'development',
+  error: 'Connection error: ',
+  stack: 'KafkaJSNonRetriableError\n' +
+    '  Caused by: KafkaJSConnectionError: Connection error: \n' +
+    '    at Socket.onError (C:\\Users\\kisho\\WorkSpace\\Backend\\email-microservice\\node_modules\\kafkajs\\src\\network\\connection.js:210:23)\n' +
+    '    at Socket.emit (node:events:519:28)\n' +
+    '    at emitErrorNT (node:internal/streams/destroy:170:8)\n' +
+    '    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)',
+  level: 'error',
+  message: 'Failed to start Kafka consumer',
+  timestamp: '2025-12-04 01:17:07.436'
+}
