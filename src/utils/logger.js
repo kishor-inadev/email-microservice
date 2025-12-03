@@ -67,8 +67,7 @@ if (process.env.NODE_ENV === 'test') {
 // Create logs directory if it doesn't exist
 const fs = require('fs');
 const path = require('path');
-
-const logsDir = path.join(process.cwd(), 'logs');
+const logsDir = path.join(process.cwd(), '../../logs');
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
