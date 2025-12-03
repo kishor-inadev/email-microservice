@@ -1,15 +1,5 @@
 require('dotenv').config();
 
-const validateEnvVariables = () => {
-  const requiredVars = ['SMTP_USER', 'SMTP_HOST', 'SMTP_PORT'];
-  if (process.env.EMAIL_SERVICE) {
-    return; // Service-based providers may not need host/port
-  }
-  const missingVars = requiredVars.filter(varName => !process.env[varName]);
-  if (missingVars.length > 0) {
-    throw new Error(`Missing required email configuration: ${missingVars.join(', ')}`);
-  }
-};
 //app config
 const dbUrl = process.env.MONGO_URL;
 const jwtSecret = process.env.JWT_SECRET;
@@ -127,7 +117,6 @@ const localStoragePath = process.env.LOCAL_STORAGE_PATH || 'uploads';
 const firebaseAuthDomain = process.env.FIREBASE_AUTH_DOMAIN || '';
 const firebaseMessagingSenderId = process.env.FIREBASE_MESSAGING_SENDER_ID || '';
 const firebaseAppId = process.env.FIREBASE_APP_ID || '';
-validateEnvVariables();
 
 //string of char
 

@@ -174,7 +174,7 @@ class EmailService {
     try {
       if (this.templateCache.has(templateName)) return this.templateCache.get(templateName);
 
-      const templateFile = process.env.TEMPLATE_FILE || 'src/templates/emailTemplate.js';
+      const templateFile = 'src/templates/emailTemplate.js';
       const templatePath = path.join(process.cwd(), templateFile);
 
       await fs.access(templatePath);
@@ -211,9 +211,13 @@ class EmailService {
 
   /** Send email */
   async sendEmail(payload) {
-    const { to, from, templateId,type, data = {}, cc, bcc, attachments } = payload;
+    const { to, from, templateId, template, data = {}, cc, bcc, attachments } = payload;
 
-    const templateName = templateId||type;
+    const templateName = templateId || template;
+
+    if (!templateName) {
+      throw new Error('Either template or templateId must be provided');
+    }
 
     const { subject, html, text } = await this.renderTemplate(templateName, data);
 
@@ -232,18 +236,26 @@ class EmailService {
     try {
       const info = await this.transporter.sendMail(mailOptions);
 
+      metrics.emailsSent++;
+
       logger.info('Email sent', {
         to: this.sanitizeEmailForLog(to),
-        template: templateName
+        template: templateName,
+        messageId: info.messageId
       });
 
       return {
         success: true,
-        messageId: info.messageId
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected
       };
     } catch (error) {
+      metrics.emailsFailed++;
+      
       logger.error('Email sending failed', {
         to: this.sanitizeEmailForLog(to),
+        template: templateName,
         error: error.message
       });
       throw error;

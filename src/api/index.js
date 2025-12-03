@@ -73,6 +73,10 @@ module.exports = function setupAPI(app) {
   // Email endpoints
   app.post('/send-email', emailController.sendEmail);
 
+  // Email logs endpoints
+  app.get('/email-logs', emailController.getEmailLogs);
+  app.get('/email-logs/:requestId', emailController.getEmailLog);
+
   // Synchronous email endpoint (for testing)
   if (process.env.ENABLE_SYNC_ENDPOINT === 'true') {
     app.post('/send-email/sync', emailController.sendEmailSync);

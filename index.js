@@ -5,11 +5,12 @@ dotenv.config();
 
 const express = require('express');
 const logger = require('./src/utils/logger');
-const { startKafkaConsumer } = require('./src/kafka/consumer');
 const api = require('./src/api');
 const emailService = require('./src/services/emailService');
+const mongoService = require('./src/services/mongoService');
 
 const PORT = process.env.PORT || 3000;
+const ENABLE_KAFKA = process.env.ENABLE_KAFKA === 'true';
 
 async function startServer() {
   try {
@@ -19,9 +20,25 @@ async function startServer() {
     // Setup API routes and middleware
     api(app);
 
-    // Start Kafka consumer
-    await startKafkaConsumer();
-    logger.info('Kafka consumer started successfully');
+    // Connect to MongoDB
+    try {
+      await mongoService.connect();
+      logger.info('MongoDB connection established');
+    } catch (error) {
+      logger.error('Failed to connect to MongoDB', {
+        error: error.message
+      });
+      logger.warn('Service will continue without MongoDB');
+    }
+
+    // Start Kafka consumer if enabled
+    if (ENABLE_KAFKA) {
+      const { startKafkaConsumer } = require('./src/kafka/consumer');
+      await startKafkaConsumer();
+      logger.info('Kafka consumer started successfully');
+    } else {
+      logger.info('Kafka is disabled. Running in HTTP-only mode.');
+    }
 
     // Start HTTP server
     const server = app.listen(PORT, () => {
@@ -30,7 +47,9 @@ async function startServer() {
       logger.info(`Email microservice running on port ${PORT}`, {
         port: PORT,
         environment: process.env.NODE_ENV,
-        processId: process.pid
+        processId: process.pid,
+        kafkaEnabled: ENABLE_KAFKA,
+        mongodbConnected: mongoService.isConnected()
       });
     });
 
@@ -38,6 +57,13 @@ async function startServer() {
     const gracefulShutdown = async signal => {
       logger.info(`${signal} received. Starting graceful shutdown...`);
 
+      // Disconnect MongoDB
+      if (mongoService.isConnected()) {
+        await mongoService.disconnect();
+        logger.info('MongoDB disconnected');
+      }
+
+      // Close HTTP server
       server.close(() => {
         logger.info('HTTP server closed');
         process.exit(0);

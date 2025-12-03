@@ -1,9 +1,16 @@
 const Joi = require('joi');
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
-const { publishToKafka } = require('../kafka/producer');
 const idempotency = require('../utils/idempotency');
 const validator = require('../utils/validator');
+const mongoService = require('../services/mongoService');
+
+const ENABLE_KAFKA = process.env.ENABLE_KAFKA === 'true';
+let publishToKafka = null;
+
+if (ENABLE_KAFKA) {
+  publishToKafka = require('../kafka/producer').publishToKafka;
+}
 
 // In-memory metrics (replace with Redis/Prometheus in production)
 const metrics = {
@@ -54,20 +61,80 @@ async function sendEmail(req, res) {
       await idempotency.markAsProcessed(emailPayload.idempotencyKey);
     }
 
-    // Send to Kafka
-    await publishToKafka(process.env.KAFKA_TOPIC_SEND || 'email.send', emailPayload);
+    // Save to MongoDB
+    if (mongoService.isConnected()) {
+      await mongoService.saveEmailLog({
+        ...emailPayload,
+        status: 'queued'
+      });
+    }
 
-    const templateName = emailPayload.templateId || emailPayload.template;
-    logger.info('Email queued successfully', {
-      requestId,
-      to: emailPayload.to,
-      template: templateName
-    });
+    // Send to Kafka if enabled, otherwise process directly
+    if (ENABLE_KAFKA) {
+      await publishToKafka(process.env.KAFKA_TOPIC_SEND || 'email.send', emailPayload);
 
-    res.status(202).json({
-      message: 'Email queued for processing',
-      requestId
-    });
+      const templateName = emailPayload.templateId || emailPayload.template;
+      logger.info('Email queued to Kafka successfully', {
+        requestId,
+        to: emailPayload.to,
+        template: templateName
+      });
+
+      res.status(202).json({
+        message: 'Email queued for processing',
+        requestId
+      });
+    } else {
+      // Process email directly without Kafka
+      try {
+        const result = await emailService.sendEmail(emailPayload);
+
+        if (mongoService.isConnected()) {
+          await mongoService.updateEmailLog(requestId, {
+            status: 'sent',
+            messageId: result.messageId,
+            sentAt: new Date(),
+            metadata: {
+              accepted: result.accepted,
+              rejected: result.rejected
+            }
+          });
+        }
+
+        metrics.emailsSent++;
+        metrics.emailsProcessed++;
+
+        const templateName = emailPayload.templateId || emailPayload.template;
+        logger.info('Email sent successfully (HTTP mode)', {
+          requestId,
+          to: emailPayload.to,
+          template: templateName,
+          messageId: result.messageId
+        });
+
+        res.status(200).json({
+          message: 'Email sent successfully',
+          messageId: result.messageId,
+          requestId
+        });
+      } catch (error) {
+        if (mongoService.isConnected()) {
+          await mongoService.updateEmailLog(requestId, {
+            status: 'failed',
+            failedAt: new Date(),
+            error: {
+              message: error.message,
+              code: error.code
+            }
+          });
+        }
+
+        metrics.emailsFailed++;
+        metrics.emailsProcessed++;
+
+        throw error;
+      }
+    }
   } catch (error) {
     logger.error('Failed to queue email', { requestId, error: error.message, stack: error.stack });
     res.status(500).json({
@@ -117,8 +184,29 @@ async function sendEmailSync(req, res) {
       await idempotency.markAsProcessed(emailPayload.idempotencyKey);
     }
 
+    // Save to MongoDB
+    if (mongoService.isConnected()) {
+      await mongoService.saveEmailLog({
+        ...emailPayload,
+        status: 'queued'
+      });
+    }
+
     // Send email directly
     const result = await emailService.sendEmail(emailPayload);
+
+    // Update MongoDB with success
+    if (mongoService.isConnected()) {
+      await mongoService.updateEmailLog(requestId, {
+        status: 'sent',
+        messageId: result.messageId,
+        sentAt: new Date(),
+        metadata: {
+          accepted: result.accepted,
+          rejected: result.rejected
+        }
+      });
+    }
 
     const templateName = emailPayload.templateId || emailPayload.template;
 
@@ -138,6 +226,18 @@ async function sendEmailSync(req, res) {
       requestId
     });
   } catch (error) {
+    // Update MongoDB with failure
+    if (mongoService.isConnected()) {
+      await mongoService.updateEmailLog(req.requestId, {
+        status: 'failed',
+        failedAt: new Date(),
+        error: {
+          message: error.message,
+          code: error.code
+        }
+      });
+    }
+
     metrics.emailsFailed++;
     metrics.emailsProcessed++;
 
@@ -158,10 +258,10 @@ async function sendEmailSync(req, res) {
 /**
  * Get service metrics
  */
-function getMetrics(req, res) {
+async function getMetrics(req, res) {
   const uptime = Date.now() - metrics.startTime;
 
-  res.status(200).json({
+  const metricsData = {
     metrics: {
       emails_sent_total: metrics.emailsSent,
       emails_failed_total: metrics.emailsFailed,
@@ -171,7 +271,92 @@ function getMetrics(req, res) {
       service_uptime_seconds: Math.floor(uptime / 1000)
     },
     timestamp: new Date().toISOString()
-  });
+  };
+
+  if (mongoService.isConnected()) {
+    try {
+      const dbStats = await mongoService.getEmailStats();
+      metricsData.database = dbStats;
+    } catch (error) {
+      logger.error('Failed to get database stats', { error: error.message });
+    }
+  }
+
+  res.status(200).json(metricsData);
+}
+
+/**
+ * Get email logs from database
+ */
+async function getEmailLogs(req, res) {
+  try {
+    if (!mongoService.isConnected()) {
+      return res.status(503).json({
+        error: 'Database not connected'
+      });
+    }
+
+    const filters = {
+      status: req.query.status,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate
+    };
+
+    const options = {
+      limit: parseInt(req.query.limit) || 100,
+      skip: parseInt(req.query.skip) || 0,
+      sort: req.query.sort ? JSON.parse(req.query.sort) : { createdAt: -1 }
+    };
+
+    const result = await mongoService.getEmailLogs(filters, options);
+
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error('Failed to get email logs', {
+      error: error.message,
+      stack: error.stack
+    });
+
+    res.status(500).json({
+      error: 'Failed to get email logs',
+      message: error.message
+    });
+  }
+}
+
+/**
+ * Get single email log
+ */
+async function getEmailLog(req, res) {
+  try {
+    if (!mongoService.isConnected()) {
+      return res.status(503).json({
+        error: 'Database not connected'
+      });
+    }
+
+    const { requestId } = req.params;
+    const log = await mongoService.getEmailLog(requestId);
+
+    if (!log) {
+      return res.status(404).json({
+        error: 'Email log not found',
+        requestId
+      });
+    }
+
+    res.status(200).json(log);
+  } catch (error) {
+    logger.error('Failed to get email log', {
+      requestId: req.params.requestId,
+      error: error.message
+    });
+
+    res.status(500).json({
+      error: 'Failed to get email log',
+      message: error.message
+    });
+  }
 }
 
 // Export metrics for use by Kafka consumer
@@ -185,5 +370,7 @@ module.exports = {
   sendEmail,
   sendEmailSync,
   getMetrics,
+  getEmailLogs,
+  getEmailLog,
   incrementMetric
 };
