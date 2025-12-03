@@ -5,15 +5,17 @@ dotenv.config();
 
 const express = require('express');
 const logger = require('./src/utils/logger');
-const api = require('./src/api');
+const api = require('./src/api/app');
 const emailService = require('./src/services/emailService');
 const mongoService = require('./src/services/mongoService');
+const connectDB = require('./src/config/dbConnact');
 
 const PORT = process.env.PORT || 3000;
 const ENABLE_KAFKA = process.env.ENABLE_KAFKA === 'true';
 
 async function startServer() {
   try {
+    await connectDB();
     // Create Express app
     const app = express();
 
@@ -21,15 +23,6 @@ async function startServer() {
     api(app);
 
     // Connect to MongoDB
-    try {
-      await mongoService.connect();
-      logger.info('MongoDB connection established');
-    } catch (error) {
-      logger.error('Failed to connect to MongoDB', {
-        error: error.message
-      });
-      logger.warn('Service will continue without MongoDB');
-    }
 
     // Start Kafka consumer if enabled
     if (ENABLE_KAFKA) {
@@ -42,7 +35,7 @@ async function startServer() {
 
     // Start HTTP server
     const server = app.listen(PORT, () => {
-      emailService.verifyEmailConnection().then(result => console.log(result.message));
+      emailService.verifyEmailConnection();
 
       logger.info(`Email microservice running on port ${PORT}`, {
         port: PORT,
@@ -64,9 +57,9 @@ async function startServer() {
       }
 
       // Close HTTP server
-      server.close(() => {
+      server.close(err => {
         logger.info('HTTP server closed');
-        process.exit(0);
+        throw err;
       });
     };
 
@@ -77,19 +70,19 @@ async function startServer() {
       error: error.message,
       stack: error.stack
     });
-    process.exit(1);
+    throw error;
   }
 }
 
 // Handle unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection', { reason, promise });
-  process.exit(1);
+  throw reason;
 });
 
 process.on('uncaughtException', error => {
   logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
-  process.exit(1);
+  throw error;
 });
 
 startServer();

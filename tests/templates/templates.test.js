@@ -2,7 +2,7 @@ describe('Email Templates', () => {
   describe('USER_CREATED template', () => {
     test('should render with all required fields', () => {
       const template = require('../../src/templates/USER_CREATED');
-      
+
       const data = {
         username: 'John Doe',
         email: 'john@example.com',
@@ -21,7 +21,7 @@ describe('Email Templates', () => {
 
     test('should handle missing optional fields', () => {
       const template = require('../../src/templates/USER_CREATED');
-      
+
       const data = {
         username: 'John Doe',
         email: 'john@example.com'
@@ -38,7 +38,7 @@ describe('Email Templates', () => {
   describe('PASSWORD_RESET template', () => {
     test('should render with reset URL', () => {
       const template = require('../../src/templates/PASSWORD_RESET');
-      
+
       const data = {
         username: 'John Doe',
         email: 'john@example.com',
@@ -57,7 +57,7 @@ describe('Email Templates', () => {
   describe('ORDER_SUCCESS template', () => {
     test('should render with order details', () => {
       const template = require('../../src/templates/ORDER_SUCCESS');
-      
+
       const data = {
         username: 'John Doe',
         email: 'john@example.com',
@@ -84,7 +84,7 @@ describe('Email Templates', () => {
   describe('CUSTOM_GENERIC_TEMPLATE template', () => {
     test('should render with custom content', () => {
       const template = require('../../src/templates/CUSTOM_GENERIC_TEMPLATE');
-      
+
       const data = {
         username: 'John Doe',
         email: 'john@example.com',

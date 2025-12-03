@@ -173,7 +173,7 @@ if (process.env.REDIS_URL) {
     url: process.env.REDIS_URL,
     password: process.env.REDIS_PASSWORD
   });
-  
+
   redisClient.connect().then(() => {
     logger.info('Redis connected for idempotency');
     idempotencyStore = new RedisIdempotencyStore(redisClient);

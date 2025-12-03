@@ -1,4 +1,4 @@
-const Joi = require('joi');
+
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
 const idempotency = require('../utils/idempotency');
@@ -361,7 +361,7 @@ async function getEmailLog(req, res) {
 
 // Export metrics for use by Kafka consumer
 function incrementMetric(metric) {
-  if (metrics.hasOwnProperty(metric)) {
+  if (Object.hasOwn(metrics, metric)) {
     metrics[metric]++;
   }
 }

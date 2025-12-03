@@ -132,6 +132,8 @@ class EmailService {
       try {
         await this.transporter.verify();
         metrics.connectionSuccesses++;
+        console.log('✅ Email service is ready');
+
         return { success: true, message: '✅ Email service is ready', metrics };
       } catch (error) {
         attempts++;
@@ -252,7 +254,7 @@ class EmailService {
       };
     } catch (error) {
       metrics.emailsFailed++;
-      
+
       logger.error('Email sending failed', {
         to: this.sanitizeEmailForLog(to),
         template: templateName,

@@ -12,15 +12,17 @@ module.exports = {
   rules: {
     // Code style
     indent: ['error', 2],
+    'no-console': 'off',
     'linebreak-style': ['error', 'unix'],
-    quotes: ['error', 'single'],
+    quotes: ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
+
     semi: ['error', 'always'],
     'comma-dangle': ['error', 'never'],
     'no-trailing-spaces': 'error',
     'eol-last': 'error',
 
     // Best practices
-    'no-console': 'warn',
+    // 'no-console': 'warn',
     'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'no-var': 'error',
     'prefer-const': 'error',
