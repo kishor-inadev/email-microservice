@@ -1,4 +1,3 @@
-
 const { appUrl, applicaionName, frontendUrl } = require('../config/setting');
 
 /**
@@ -2027,8 +2026,8 @@ const ORG_SECURITY_POLICY_UPDATED = ({
         </table>
         
         ${
-  requiresAction
-    ? `
+          requiresAction
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#7f1d1d;">
             <strong>⚠️ Action Required:</strong><br/>
@@ -2036,8 +2035,8 @@ const ORG_SECURITY_POLICY_UPDATED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           These changes help keep your organization secure and compliant.
@@ -2426,8 +2425,8 @@ const ORG_COMPLIANCE_AUDIT_COMPLETED = ({
         </table>
         
         ${
-  findings && findings.length > 0
-    ? `
+          findings && findings.length > 0
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Key Findings:</strong><br/>
@@ -2437,8 +2436,8 @@ const ORG_COMPLIANCE_AUDIT_COMPLETED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           ${reportUrl ? 'Download the full audit report using the button below.' : 'A detailed report is available in your organization dashboard.'}
@@ -2495,31 +2494,60 @@ const otpEmailTemplate = ({ username, otp, expiryMinutes }) => {
 /**
  * welcomeEmailTemplate - Welcome to Our App!
  */
-const welcomeEmailTemplate = data => {
+const welcomeEmailTemplate = (data = {}) => {
   return {
-    subject: `Welcome to Our App!`,
+    subject: `Welcome to ${applicaionName || 'Our App'}!`,
     html: buildEmailHTML({
-      preheader: `Welcome to Our App!`,
-      title: 'Welcome to Our App!',
+      preheader: `Welcome to ${applicaionName || 'Our App'}!`,
+      title: `Welcome to ${applicaionName || 'Our App'}!`,
       headerBg: '#10b981',
-      headerText: '🎉 Welcome to Our App!',
+      headerText: `🎉 Welcome to ${applicaionName || 'Our App'}!`,
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
           Hello <strong>${data.username || data.name || 'User'}</strong>,
         </p>
-        <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+
+        <p style="margin:0 0 16px 16px;color:#4b5563;">
+          We're excited to have you onboard! Your account has been successfully created 
+          and you're all set to explore everything we offer.
         </p>
 
-        <!-- Add dynamic content here based on parameters -->
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Here’s what you can do next:
+        </p>
+
+        <ul style="margin:0 0 16px 20px;padding:0;color:#4b5563;">
+          <li>✔️ Access your dashboard and manage your profile</li>
+          <li>✔️ Explore powerful tools and features</li>
+          <li>✔️ Customize preferences to improve your experience</li>
+        </ul>
+
+        ${
+          data.extraMessage
+            ? `
+              <p style="margin:16px 0;color:#4b5563;">
+                ${data.extraMessage}
+              </p>
+            `
+            : ''
+        }
 
         <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
+          If you have any questions, feel free to reach out — we're always here to help.
+        </p>
+
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          Cheers,<br/>
           <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
         </p>
       `,
-      ctaButton: null,
-      footerNote: null
+      ctaButton: data.ctaUrl
+        ? {
+            text: data.ctaText || 'Get Started',
+            url: data.ctaUrl
+          }
+        : null,
+      footerNote: `If you didn’t create an account with us, you can safely ignore this email.`
     }),
     attachments: []
   };
@@ -9035,9 +9063,9 @@ const CART_ABANDONED = ({ username, cartId, itemCount, items, totalAmount, aband
   const itemsHTML =
     items && items.length > 0
       ? items
-        .slice(0, 3)
-        .map(
-          item => `
+          .slice(0, 3)
+          .map(
+            item => `
       <tr>
         <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -9057,8 +9085,8 @@ const CART_ABANDONED = ({ username, cartId, itemCount, items, totalAmount, aband
         </td>
       </tr>
     `
-        )
-        .join('')
+          )
+          .join('')
       : '<tr><td style="padding:12px 0;color:#6b7280;">Your cart items are waiting for you!</td></tr>';
 
   return {
@@ -9084,8 +9112,8 @@ const CART_ABANDONED = ({ username, cartId, itemCount, items, totalAmount, aband
           </tr>
           ${itemsHTML}
           ${
-  totalAmount
-    ? `
+            totalAmount
+              ? `
           <tr>
             <td style="padding:16px;background:#f3f4f6;">
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -9097,8 +9125,8 @@ const CART_ABANDONED = ({ username, cartId, itemCount, items, totalAmount, aband
             </td>
           </tr>
           `
-    : ''
-}
+              : ''
+          }
         </table>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
@@ -9172,9 +9200,9 @@ const WISHLIST_REMINDER = ({ username, wishlistId, itemCount, items }) => {
   const itemsHTML =
     items && items.length > 0
       ? items
-        .slice(0, 3)
-        .map(item => `<li style="margin:8px 0;color:#4b5563;">• ${item.name}</li>`)
-        .join('')
+          .slice(0, 3)
+          .map(item => `<li style="margin:8px 0;color:#4b5563;">• ${item.name}</li>`)
+          .join('')
       : '<li style="color:#6b7280;">Your wishlist items</li>';
 
   return {
@@ -9463,8 +9491,8 @@ const ORDER_CREATED = ({ username, orderId, orderDate, items, totalAmount, shipp
   const itemsHTML =
     items && items.length > 0
       ? items
-        .map(
-          item => `
+          .map(
+            item => `
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">
           <div style="font-size:14px;font-weight:600;color:#111827;">${item.name}</div>
@@ -9475,8 +9503,8 @@ const ORDER_CREATED = ({ username, orderId, orderDate, items, totalAmount, shipp
         </td>
       </tr>
     `
-        )
-        .join('')
+          )
+          .join('')
       : '<tr><td colspan="2" style="padding:12px 0;color:#6b7280;">Order items</td></tr>';
 
   return {
@@ -9515,8 +9543,8 @@ const ORDER_CREATED = ({ username, orderId, orderDate, items, totalAmount, shipp
         </table>
         
         ${
-  shippingAddress
-    ? `
+          shippingAddress
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Shipping Address:</strong><br/>
@@ -9524,8 +9552,8 @@ const ORDER_CREATED = ({ username, orderId, orderDate, items, totalAmount, shipp
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           We'll notify you when your order ships.
@@ -9753,14 +9781,14 @@ const ORDER_CANCELLED = ({ username, orderId, cancelledBy, reason, refundAmount,
         </table>
         
         ${
-  refundAmount
-    ? `
+          refundAmount
+            ? `
         <p style="margin:24px 0 0 0;color:#4b5563;">
           A refund of <strong>${refundAmount}</strong> will be processed to your original payment method within 5-7 business days.
         </p>
         `
-    : ''
-}
+            : ''
+        }
       `,
       ctaButton: null,
       footerNote: 'If you have questions, please contact our support team.'
@@ -9799,14 +9827,14 @@ const ORDER_RETURNED = ({ username, orderId, returnReason, returnDate, refundAmo
         </table>
         
         ${
-  refundAmount
-    ? `
+          refundAmount
+            ? `
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Your refund will be credited to your original payment method within 5-7 business days.
         </p>
         `
-    : ''
-}
+            : ''
+        }
       `,
       ctaButton: null,
       footerNote: null
@@ -10000,8 +10028,8 @@ const ORDER_PARTIALLY_SHIPPED = ({
         </table>
         
         ${
-  trackingNumber
-    ? `
+          trackingNumber
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#dbeafe;border-left:4px solid #3b82f6;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#1e40af;">
             <strong>Tracking Information:</strong><br/>
@@ -10010,8 +10038,8 @@ const ORDER_PARTIALLY_SHIPPED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           We'll notify you when the remaining items ship.
@@ -10239,8 +10267,8 @@ const RETURN_APPROVED = ({
         </table>
         
         ${
-  returnInstructions
-    ? `
+          returnInstructions
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Return Instructions:</strong><br/>
@@ -10248,8 +10276,8 @@ const RETURN_APPROVED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           ${returnLabel ? 'Download your prepaid return label below and ship the items within 14 days.' : 'Please ship the items to the address provided in the return instructions.'}
@@ -10257,15 +10285,15 @@ const RETURN_APPROVED = ({
       `,
       ctaButton: returnLabel
         ? {
-          url: returnLabel,
-          text: 'Download Return Label',
-          color: '#10b981'
-        }
+            url: returnLabel,
+            text: 'Download Return Label',
+            color: '#10b981'
+          }
         : {
-          url: `${appUrl}/returns/${returnId}`,
-          text: 'View Return Details',
-          color: '#10b981'
-        },
+            url: `${appUrl}/returns/${returnId}`,
+            text: 'View Return Details',
+            color: '#10b981'
+          },
       footerNote: null
     }),
     attachments: []
@@ -10352,14 +10380,14 @@ const RETURN_COMPLETED = ({
         </table>
         
         ${
-  refundAmount
-    ? `
+          refundAmount
+            ? `
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Your refund will be credited to your ${refundMethod || 'original payment method'} within 5-7 business days.
         </p>
         `
-    : ''
-}
+            : ''
+        }
       `,
       ctaButton: null,
       footerNote: null
@@ -10473,15 +10501,15 @@ const EXCHANGE_APPROVED = ({
       `,
       ctaButton: returnLabel
         ? {
-          url: returnLabel,
-          text: 'Download Return Label',
-          color: '#10b981'
-        }
+            url: returnLabel,
+            text: 'Download Return Label',
+            color: '#10b981'
+          }
         : {
-          url: `${appUrl}/exchanges/${exchangeId}`,
-          text: 'View Exchange Details',
-          color: '#10b981'
-        },
+            url: `${appUrl}/exchanges/${exchangeId}`,
+            text: 'View Exchange Details',
+            color: '#10b981'
+          },
       footerNote: null
     }),
     attachments: []
@@ -10582,8 +10610,8 @@ const SYSTEM_ALERT = ({
         </table>
         
         ${
-  affectedServices && affectedServices.length > 0
-    ? `
+          affectedServices && affectedServices.length > 0
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Affected Services:</strong>
@@ -10593,12 +10621,12 @@ const SYSTEM_ALERT = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         ${
-  actionRequired
-    ? `
+          actionRequired
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#7f1d1d;">
             <strong>⚡ ACTION REQUIRED:</strong><br/>
@@ -10606,8 +10634,8 @@ const SYSTEM_ALERT = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Our team has been notified and is investigating this issue.
@@ -10794,8 +10822,8 @@ const MAINTENANCE_COMPLETED = ({ maintenanceType, completedAt, duration, improve
         </table>
         
         ${
-  improvements && improvements.length > 0
-    ? `
+          improvements && improvements.length > 0
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">What's New:</strong>
@@ -10805,8 +10833,8 @@ const MAINTENANCE_COMPLETED = ({ maintenanceType, completedAt, duration, improve
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Thank you for your patience. All services are now fully operational.
@@ -10978,8 +11006,8 @@ const SERVER_OVERLOADED = ({
         </table>
         
         ${
-  recommendation
-    ? `
+          recommendation
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#7f1d1d;">
             <strong>⚡ RECOMMENDED ACTION:</strong><br/>
@@ -10987,8 +11015,8 @@ const SERVER_OVERLOADED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Immediate attention required to prevent service degradation.
@@ -11046,8 +11074,8 @@ const DEPLOYMENT_STARTED = ({
         </table>
         
         ${
-  changes && changes.length > 0
-    ? `
+          changes && changes.length > 0
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Changes in This Release:</strong>
@@ -11057,8 +11085,8 @@ const DEPLOYMENT_STARTED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           You'll be notified once the deployment is complete.
@@ -11116,8 +11144,8 @@ const DEPLOYMENT_COMPLETED = ({
         </table>
         
         ${
-  newFeatures && newFeatures.length > 0
-    ? `
+          newFeatures && newFeatures.length > 0
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">🎉 What's New:</strong>
@@ -11127,8 +11155,8 @@ const DEPLOYMENT_COMPLETED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           All systems are operational with the new version.
@@ -11180,8 +11208,8 @@ const DEPLOYMENT_FAILED = ({
         </table>
         
         ${
-  errorMessage
-    ? `
+          errorMessage
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Error Details:</strong><br/>
@@ -11189,12 +11217,12 @@ const DEPLOYMENT_FAILED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         ${
-  rollbackStatus
-    ? `
+          rollbackStatus
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#92400e;">
             <strong>Rollback Status:</strong><br/>
@@ -11202,8 +11230,8 @@ const DEPLOYMENT_FAILED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Immediate investigation required. Check deployment logs for details.
@@ -11312,8 +11340,8 @@ const SERVICE_OUTAGE_DETECTED = ({
         </table>
         
         ${
-  errorDetails
-    ? `
+          errorDetails
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Error Details:</strong><br/>
@@ -11321,8 +11349,8 @@ const SERVICE_OUTAGE_DETECTED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#92400e;">
@@ -11378,8 +11406,8 @@ const SERVICE_RECOVERED = ({
         </table>
         
         ${
-  rootCause
-    ? `
+          rootCause
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Root Cause:</strong><br/>
@@ -11387,12 +11415,12 @@ const SERVICE_RECOVERED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         ${
-  preventiveMeasures
-    ? `
+          preventiveMeasures
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Preventive Measures:</strong><br/>
@@ -11400,8 +11428,8 @@ const SERVICE_RECOVERED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           We apologize for any inconvenience. All services are now fully operational. Thank you for your patience.
@@ -11458,8 +11486,8 @@ const NEW_FEATURE_RELEASED = ({
         </table>
         
         ${
-  benefits && benefits.length > 0
-    ? `
+          benefits && benefits.length > 0
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">✨ What You Get:</strong>
@@ -11469,8 +11497,8 @@ const NEW_FEATURE_RELEASED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Start using this feature today and let us know what you think!
@@ -11478,15 +11506,15 @@ const NEW_FEATURE_RELEASED = ({
       `,
       ctaButton: learnMoreUrl
         ? {
-          url: learnMoreUrl,
-          text: 'Learn More',
-          color: '#8b5cf6'
-        }
+            url: learnMoreUrl,
+            text: 'Learn More',
+            color: '#8b5cf6'
+          }
         : {
-          url: `${appUrl}`,
-          text: 'Try It Now',
-          color: '#8b5cf6'
-        },
+            url: `${appUrl}`,
+            text: 'Try It Now',
+            color: '#8b5cf6'
+          },
       footerNote: null
     }),
     attachments: []
@@ -11838,8 +11866,8 @@ const DELIVERY_EXCEPTION = ({
         </table>
         
         ${
-  nextStep
-    ? `
+          nextStep
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#7f1d1d;">
             <strong>🔔 Action Needed:</strong><br/>
@@ -11847,8 +11875,8 @@ const DELIVERY_EXCEPTION = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Please contact support for immediate assistance.
@@ -11902,8 +11930,8 @@ const CUSTOMS_HOLD = ({
         </table>
         
         ${
-  requiredActions
-    ? `
+          requiredActions
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#7f1d1d;">
             <strong>⚠️ Action Required:</strong><br/>
@@ -11911,8 +11939,8 @@ const CUSTOMS_HOLD = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           This is normal for international shipments. Your package will be delivered once customs inspection is complete.
@@ -11973,16 +12001,16 @@ const PROMOTION_LAUNCHED = ({
         </table>
         
         ${
-  exclusions
-    ? `
+          exclusions
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:13px;color:#6b7280;">
             <strong>Exclusions:</strong> ${exclusions}
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Don't miss out! Offer valid for a limited time only.
@@ -12028,16 +12056,16 @@ const DISCOUNT_APPLIED = ({ username, discountAmount, discountType, expiryDate, 
         </table>
         
         ${
-  terms
-    ? `
+          terms
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:13px;color:#6b7280;">
             <strong>Terms:</strong> ${terms}
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Use this discount on your next purchase!
@@ -12089,8 +12117,8 @@ const FLASH_SALE_ANNOUNCEMENT = ({ saleName, startsAt, endsAt, featured, discoun
         </table>
         
         ${
-  featured && featured.length > 0
-    ? `
+          featured && featured.length > 0
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">🔥 Featured Items:</strong>
@@ -12100,20 +12128,20 @@ const FLASH_SALE_ANNOUNCEMENT = ({ saleName, startsAt, endsAt, featured, discoun
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         ${
-  urgency
-    ? `
+          urgency
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#92400e;">
             <strong>⚡ ${urgency}</strong>
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           This is a LIMITED TIME offer. Shop now before items sell out!
@@ -12253,8 +12281,8 @@ const NEW_PRODUCT_LAUNCH = ({
         </p>
         
         ${
-  productImage
-    ? `
+          productImage
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;text-align:center;">
           <tr>
             <td>
@@ -12263,8 +12291,8 @@ const NEW_PRODUCT_LAUNCH = ({
           </tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#ede9fe;border-left:4px solid #8b5cf6;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#5b21b6;">
@@ -12325,8 +12353,8 @@ const CUSTOMER_MILESTONE = ({
         </table>
         
         ${
-  bonus
-    ? `
+          bonus
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">🎁 Special Bonus:</strong><br/>
@@ -12334,8 +12362,8 @@ const CUSTOMER_MILESTONE = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Thank you for being such a valued customer!
@@ -12581,8 +12609,8 @@ const PRODUCT_UPDATED = ({ productName, productId, updatedFields, updatedBy, upd
         </table>
         
         ${
-  fieldsHTML
-    ? `
+          fieldsHTML
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Updated Fields:</strong>
@@ -12592,8 +12620,8 @@ const PRODUCT_UPDATED = ({ productName, productId, updatedFields, updatedBy, upd
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Changes have been applied to the product.
@@ -12791,8 +12819,8 @@ const PRODUCT_REVIEWED = ({
         </table>
         
         ${
-  reviewText
-    ? `
+          reviewText
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Review:</strong><br/>
@@ -12800,8 +12828,8 @@ const PRODUCT_REVIEWED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           ${approvalStatus === 'pending' ? 'Please review and approve this submission.' : 'Review has been published.'}
@@ -12937,8 +12965,8 @@ const STOCK_LOW = ({
         </table>
         
         ${
-  recommendedAction
-    ? `
+          recommendedAction
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#7f1d1d;">
             <strong>📋 Recommended Action:</strong><br/>
@@ -12946,8 +12974,8 @@ const STOCK_LOW = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Consider placing a replenishment order soon.
@@ -12997,8 +13025,8 @@ const STOCK_CRITICAL = ({
         </table>
         
         ${
-  urgentAction
-    ? `
+          urgentAction
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#92400e;">
             <strong>⚡ URGENT ACTION REQUIRED:</strong><br/>
@@ -13006,8 +13034,8 @@ const STOCK_CRITICAL = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Take immediate action to prevent stockouts!
@@ -13108,8 +13136,8 @@ const INVENTORY_AUDIT_COMPLETED = ({
         </table>
         
         ${
-  actionItems
-    ? `
+          actionItems
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Action Items:</strong><br/>
@@ -13117,8 +13145,8 @@ const INVENTORY_AUDIT_COMPLETED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Review the audit report and take necessary actions.
@@ -13176,8 +13204,8 @@ const SUPPLIER_DELAY = ({
         </table>
         
         ${
-  productsHTML
-    ? `
+          productsHTML
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Affected Products:</strong>
@@ -13187,8 +13215,8 @@ const SUPPLIER_DELAY = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Update your inventory forecasts and customer communication accordingly.
@@ -13241,8 +13269,8 @@ const BATCH_EXPIRING_SOON = ({
         </table>
         
         ${
-  recommendation
-    ? `
+          recommendation
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#7f1d1d;">
             <strong>📋 Recommendation:</strong><br/>
@@ -13250,8 +13278,8 @@ const BATCH_EXPIRING_SOON = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Plan for clearance or disposal of this batch.
@@ -13308,8 +13336,8 @@ const WAREHOUSE_TRANSFER_INITIATED = ({
         </table>
         
         ${
-  itemsHTML
-    ? `
+          itemsHTML
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Items in Transfer:</strong>
@@ -13319,8 +13347,8 @@ const WAREHOUSE_TRANSFER_INITIATED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Monitor this transfer and confirm receipt upon arrival.
@@ -13729,8 +13757,8 @@ const EMAIL_FAILED = ({ emailAddress, messageSubject, failureReason, failedAt, r
         </table>
         
         ${
-  retryStatus
-    ? `
+          retryStatus
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#92400e;">
             <strong>Retry Status:</strong><br/>
@@ -13738,8 +13766,8 @@ const EMAIL_FAILED = ({ emailAddress, messageSubject, failureReason, failedAt, r
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Please check the email address and try again.
@@ -13888,8 +13916,8 @@ const CHAT_ENDED = ({ username, chatWith, topic, chatId, endedAt, duration, summ
         </table>
         
         ${
-  summary
-    ? `
+          summary
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Session Summary:</strong><br/>
@@ -13899,8 +13927,8 @@ const CHAT_ENDED = ({ username, chatWith, topic, chatId, endedAt, duration, summ
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Thank you for using our chat service!
@@ -13965,8 +13993,8 @@ const DAILY_REPORT_READY = ({ username, reportDate, metrics, highlights, reportU
         </table>
         
         ${
-  highlightsHTML
-    ? `
+          highlightsHTML
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#d1fae5;border-left:4px solid #10b981;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#065f46;">
             <strong style="font-size:15px;">✨ Highlights</strong>
@@ -13976,8 +14004,8 @@ const DAILY_REPORT_READY = ({ username, reportDate, metrics, highlights, reportU
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Click the button below to view the complete report with detailed insights.
@@ -14050,8 +14078,8 @@ const WEEKLY_REPORT_READY = ({
         </table>
         
         ${
-  insightsHTML
-    ? `
+          insightsHTML
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#dbeafe;border-left:4px solid #3b82f6;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#1e40af;">
             <strong style="font-size:15px;">💡 Key Insights</strong>
@@ -14061,8 +14089,8 @@ const WEEKLY_REPORT_READY = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Review the complete weekly analysis to understand performance trends.
@@ -14135,8 +14163,8 @@ const MONTHLY_REPORT_READY = ({
         </table>
         
         ${
-  achievementsHTML
-    ? `
+          achievementsHTML
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#d1fae5;border-left:4px solid #10b981;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#065f46;">
             <strong style="font-size:15px;">🏆 Achievements</strong>
@@ -14146,8 +14174,8 @@ const MONTHLY_REPORT_READY = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Dive deep into the data to identify growth opportunities for next month.
@@ -14208,8 +14236,8 @@ const DATA_TREND_ALERT = ({
         </table>
         
         ${
-  recommendation
-    ? `
+          recommendation
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">💡 Recommendation:</strong><br/>
@@ -14217,8 +14245,8 @@ const DATA_TREND_ALERT = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Monitor this metric closely and adjust your strategy if needed.
@@ -14275,8 +14303,8 @@ const TRAFFIC_SPIKE = ({
         </table>
         
         ${
-  cause
-    ? `
+          cause
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Possible Causes:</strong><br/>
@@ -14284,8 +14312,8 @@ const TRAFFIC_SPIKE = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#dbeafe;border-left:4px solid #3b82f6;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#1e40af;">
@@ -14348,8 +14376,8 @@ const CONVERSION_RATE_DROP = ({
         </table>
         
         ${
-  possibleCauses
-    ? `
+          possibleCauses
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Possible Causes:</strong>
@@ -14359,8 +14387,8 @@ const CONVERSION_RATE_DROP = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#92400e;">
@@ -14428,8 +14456,8 @@ const ENGAGEMENT_INCREASED = ({
         </table>
         
         ${
-  highlightsHTML
-    ? `
+          highlightsHTML
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">✨ Key Highlights:</strong>
@@ -14439,8 +14467,8 @@ const ENGAGEMENT_INCREASED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#dbeafe;border-left:4px solid #3b82f6;border-radius:4px;">
           <tr><td style="font-size:14px;line-height:20px;color:#1e40af;">
@@ -14510,8 +14538,8 @@ const KPI_THRESHOLD_BREACHED = ({
         </table>
         
         ${
-  recommendations
-    ? `
+          recommendations
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">📋 Recommendations:</strong><br/>
@@ -14519,8 +14547,8 @@ const KPI_THRESHOLD_BREACHED = ({
           </td></tr>
         </table>
         `
-    : ''
-}
+            : ''
+        }
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
           ${direction === 'above' ? 'Keep maintaining this performance!' : 'Take action to bring this KPI back into target range.'}
