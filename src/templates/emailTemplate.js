@@ -42,84 +42,353 @@ const { appUrl, applicaionName, frontendUrl } = require('../config/setting');
  * @param {string} config.footerNote - Custom footer text
  * @returns {string} Complete HTML email
  */
-const buildEmailHTML = ({
-  preheader = '',
-  title = 'Notification',
-  headerBg = '#2563eb',
-  headerText = '',
-  bodyHTML = '',
-  ctaButton = null,
-  footerNote = ''
-}) => {
-  const year = new Date().getFullYear();
-  const company = applicaionName || 'Your Company';
-  const supportUrl = `${appUrl || frontendUrl || '#'}/support`;
-
-  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
-  <meta name="x-apple-disable-message-reformatting" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="supported-color-schemes" content="light dark" />
-  <title>${title}</title>
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
-  <style type="text/css">
-    body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
-    table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}
-    img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none;}
-    :root{color-scheme:light dark;supported-color-schemes:light dark;}
-    body{margin:0!important;padding:0!important;width:100%!important;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;}
-    *{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
-    table{border-collapse:collapse!important;}
-    a{color:#2563eb;text-decoration:underline;}
-    a:hover{color:#1d4ed8!important;text-decoration:none!important;}
-    @media (prefers-color-scheme:dark){
-      body{background-color:#111827!important;}
-      .email-container{background-color:#1f2937!important;}
-      .email-body{background-color:#1f2937!important;color:#f9fafb!important;}
-      .text-dark{color:#f9fafb!important;}
-      .text-muted{color:#d1d5db!important;}
-      .email-footer{background-color:#111827!important;color:#9ca3af!important;border-top-color:#374151!important;}
-      a{color:#60a5fa!important;}
+/**
+ * Full-featured email HTML generator
+ *
+ * Supports: logo, social icons, two CTAs, secondary CTA, alert banner,
+ * two-column blocks, cards, invoice layout, security badge, review block,
+ * multilingual footer, unsubscribe, manage notifications, dark mode,
+ * accessibility-friendly markup.
+ *
+ * Usage example at bottom.
+ */
+const buildEmailHTML = (opts = {}) => {
+  // -------------------------
+  // Defaults & helpers
+  // -------------------------
+  const {
+    preheader = '',
+    title = 'Notification',
+    applicationName = opts.applicaionName || 'Your Company', // support earlier typo
+    baseUrl = opts.baseUrl || opts.appUrl || opts.frontendUrl || '#',
+    logo = null, // { url, alt, width, height, href, align: 'center'|'left' }
+    headerBg = '#2563eb',
+    headerText = '',
+    bodyHTML = '', // main html content (string)
+    alert = null, // { type: 'info'|'success'|'warn'|'error', text }
+    primaryCTA = null, // { url, text, color }
+    secondaryCTA = null, // { url, text }
+    cards = [], // [{ title, text, image, url }]
+    twoColumn = null, // { leftHTML, rightHTML } OR array of blocks
+    invoice = null, // { number, date, dueDate, items: [{desc, qty, price}], subtotal, tax, total, link }
+    security = null, // { device, os, browser, ip, location, when }
+    review = null, // { promptText, ratingUrl }
+    footerNote = '',
+    links = {}, // { support, privacy, terms, unsubscribe, notifications }
+    lang = 'en', // used for 'Manage notifications' label translations
+    social = {}, // { linkedin, twitter, github, instagram, facebook } URLs
+    showSocial = true,
+    showDivider = true,
+    includeAccessibilityAttributes = true,
+    theme = { // theme palette
+      bg: '#eef1f5',
+      cardBg: '#ffffff',
+      text: '#111827',
+      muted: '#6b7280',
+      border: '#e5e7eb',
+      radius: 10
     }
-    @media only screen and (max-width:600px){
-      .email-container{width:100%!important;}
-      .mobile-pad{padding-left:20px!important;padding-right:20px!important;}
-      h1{font-size:24px!important;line-height:32px!important;}
-      h2{font-size:20px!important;line-height:28px!important;}
-      .btn-td,.btn-a{padding:12px 24px!important;font-size:14px!important;}
+  } = opts;
+
+  const year = new Date().getFullYear();
+
+  const {
+    support = `${baseUrl}/support`,
+    privacy = `${baseUrl}/privacy`,
+    terms = `${baseUrl}/terms`,
+    unsubscribe = `${baseUrl}/unsubscribe`,
+    notifications = `${baseUrl}/notifications`
+  } = links;
+
+  // small escape helper
+  const esc = s => (s == null ? '' : String(s));
+
+  // Social icon SVGs (inline, small)
+  const svg = {
+    linkedin: `<svg width="20" height="20" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false"><path fill="currentColor" d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1 4.98 2.12 4.98 3.5zM.5 8h4v12h-4zM9.5 8h3.84v1.64h.05c.54-1.02 1.86-2.08 3.83-2.08 4.1 0 4.86 2.7 4.86 6.21V20H18.2v-5.2c0-1.24-.02-2.83-1.73-2.83-1.73 0-1.99 1.35-1.99 2.75V20H9.5z"/></svg>`,
+    twitter: `<svg width="20" height="20" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false"><path fill="currentColor" d="M22.46 6c-.77.35-1.6.58-2.46.69.89-.53 1.57-1.38 1.89-2.4-.83.5-1.75.86-2.72 1.06C18.4 4.6 17.17 4 15.82 4c-2.45 0-4.43 1.98-4.43 4.43 0 .35.04.7.11 1.03C7.69 9.26 4.07 7.38 1.64 4.5c-.38.66-.6 1.42-.6 2.24 0 1.55.79 2.92 1.99 3.72-.73-.02-1.42-.22-2.02-.56v.06c0 2.17 1.54 3.98 3.58 4.39-.37.1-.77.15-1.18.15-.29 0-.57-.03-.84-.08.57 1.78 2.22 3.08 4.18 3.12-1.53 1.2-3.46 1.92-5.56 1.92-.36 0-.71-.02-1.06-.06 1.98 1.27 4.34 2.01 6.87 2.01 8.24 0 12.76-6.83 12.76-12.76 0-.19 0-.39-.01-.58.88-.63 1.64-1.41 2.25-2.3-.8.35-1.66.58-2.55.69z"/></svg>`,
+    github: `<svg width="20" height="20" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 .5C5.73.5.75 5.48.75 11.75c0 4.96 3.22 9.16 7.69 10.64.56.1.77-.24.77-.54 0-.27-.01-1.15-.01-2.09-3.13.68-3.79-1.51-3.79-1.51-.51-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.24.92.1-.71.39-1.21.71-1.49-2.5-.29-5.13-1.25-5.13-5.56 0-1.23.44-2.24 1.15-3.04-.12-.29-.5-1.45.11-3.02 0 0 .94-.3 3.08 1.15a10.7 10.7 0 012.8-.38c.95 0 1.9.13 2.8.38 2.14-1.45 3.08-1.15 3.08-1.15.61 1.57.23 2.73.11 3.02.72.8 1.15 1.81 1.15 3.04 0 4.32-2.63 5.27-5.14 5.55.4.34.76 1.01.76 2.04 0 1.47-.01 2.65-.01 3.01 0 .3.21.65.78.54 4.47-1.48 7.69-5.68 7.69-10.64C23.25 5.48 18.27.5 12 .5z"/></svg>`,
+    instagram: `<svg width="20" height="20" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2.2c3.2 0 3.584.012 4.85.07 1.17.054 1.8.24 2.22.4.54.2.92.45 1.32.86.4.4.66.8.86 1.32.16.42.35 1.05.4 2.22.06 1.27.07 1.65.07 4.85s-.012 3.584-.07 4.85c-.054 1.17-.24 1.8-.4 2.22-.2.54-.45.92-.86 1.32-.4.4-.8.66-1.32.86-.42.16-1.05.35-2.22.4-1.27.06-1.65.07-4.85.07s-3.584-.012-4.85-.07c-1.17-.054-1.8-.24-2.22-.4-.54-.2-.92-.45-1.32-.86-.4-.4-.66-.8-.86-1.32-.16-.42-.35-1.05-.4-2.22-.06-1.27-.07-1.65-.07-4.85s.012-3.584.07-4.85c.054-1.17.24-1.8.4-2.22.2-.54.45-.92.86-1.32.4-.4.8-.66 1.32-.86.42-.16 1.05-.35 2.22-.4C8.416 2.212 8.8 2.2 12 2.2zm0 3.5A6.3 6.3 0 1018.3 12 6.31 6.31 0 0012 5.7zm0 10.4A4.1 4.1 0 1116.1 12 4.1 4.1 0 0112 16.1zM18.6 6a1.47 1.47 0 11-1.47-1.47A1.47 1.47 0 0118.6 6z"/></svg>`,
+    facebook: `<svg width="20" height="20" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false"><path fill="currentColor" d="M22 12.07C22 6.48 17.52 2 11.93 2S2 6.48 2 12.07C2 17.02 5.66 21.09 10.44 21.9v-6.4H8.07v-2.9h2.37V9.8c0-2.34 1.39-3.64 3.51-3.64 1.02 0 2.08.18 2.08.18v2.29h-1.17c-1.15 0-1.51.72-1.51 1.46v1.75h2.58l-.41 2.9h-2.17V21.9C18.34 21.09 22 17.02 22 12.07z"/></svg>`
+  };
+
+  // color for alert types
+  const alertColor = t => {
+    switch (t) {
+      case 'success': return { bg: '#ecfdf5', border: '#bbf7d0', text: '#065f46' };
+      case 'warn': return { bg: '#fff7ed', border: '#ffedd5', text: '#92400e' };
+      case 'error': return { bg: '#fff1f2', border: '#fecaca', text: '#9f1239' };
+      default: return { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1' };
+    }
+  };
+
+  // invoice item row builder
+  const buildInvoiceRows = items => (items || []).map(it => `
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid ${esc(theme.border)}">${esc(it.desc)}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${esc(theme.border)};text-align:center">${esc(it.qty || 1)}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${esc(theme.border)};text-align:right">${esc(it.price)}</td>
+    </tr>
+  `).join('');
+
+  // two-column builder (responsive stack)
+  const renderTwoColumn = tc => tc ? `
+    <table role="presentation" width="100%" style="margin-top:18px">
+      <tr>
+        <td style="vertical-align:top;padding:8px 12px;width:50%">${tc.leftHTML || ''}</td>
+        <td style="vertical-align:top;padding:8px 12px;width:50%">${tc.rightHTML || ''}</td>
+      </tr>
+    </table>
+  ` : '';
+
+  // cards builder
+  const renderCards = arr => (arr && arr.length) ? `
+    <table role="presentation" width="100%" style="margin-top:18px">
+      ${arr.map(card => `
+        <tr>
+          <td style="padding:12px;border:1px solid ${esc(theme.border)};border-radius:8px;margin-bottom:12px;">
+            <div style="display:flex;gap:12px;align-items:center;">
+              ${card.image ? `<img src="${card.image}" alt="${esc(card.title)}" style="width:64px;height:64px;border-radius:8px;object-fit:cover" />` : ''}
+              <div>
+                <div style="font-weight:700;margin-bottom:6px">${esc(card.title)}</div>
+                <div style="color:${esc(theme.muted)};font-size:14px;line-height:20px">${card.text || ''}</div>
+                ${card.url ? `<div style="margin-top:8px"><a href="${card.url}" style="font-weight:600;color:${esc(headerBg)};text-decoration:none">Learn more →</a></div>` : ''}
+              </div>
+            </div>
+          </td>
+        </tr>
+      `).join('')}
+    </table>
+  ` : '';
+
+  // security block
+  const renderSecurity = s => s ? `
+    <table role="presentation" width="100%" style="margin-top:18px;border-radius:8px;background:${esc(theme.cardBg)};border:1px solid ${esc(theme.border)};">
+      <tr><td style="padding:12px">
+        <div style="font-weight:700;margin-bottom:8px">Security details</div>
+        <div style="color:${esc(theme.muted)};font-size:14px;line-height:20px">
+          ${s.device ? `Device: ${esc(s.device)}<br/>` : ''}
+          ${s.os ? `OS: ${esc(s.os)}<br/>` : ''}
+          ${s.browser ? `Browser: ${esc(s.browser)}<br/>` : ''}
+          ${s.ip ? `IP: ${esc(s.ip)}<br/>` : ''}
+          ${s.location ? `Location: ${esc(s.location)}<br/>` : ''}
+          ${s.when ? `Time: ${esc(s.when)}<br/>` : ''}
+        </div>
+      </td></tr>
+    </table>
+  ` : '';
+
+  // review block
+  const renderReview = r => r ? `
+    <table role="presentation" width="100%" style="margin-top:18px;">
+      <tr>
+        <td style="padding:12px;border-radius:8px;border:1px solid ${esc(theme.border)};background:${esc(theme.cardBg)}">
+          <div style="font-weight:700;margin-bottom:8px">${esc(r.promptText || 'Rate your experience')}</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <a href="${esc(r.ratingUrl || '#')}" style="display:inline-block;padding:10px 14px;border-radius:6px;border:1px solid ${esc(theme.border)};text-decoration:none">Give feedback</a>
+            <div style="color:${esc(theme.muted)};font-size:13px">or reply to this email</div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  ` : '';
+
+  // footer multilingual labels
+  const manageLabels = {
+    en: 'Manage Notifications',
+    fr: 'Gérer les notifications',
+    de: 'Benachrichtigungen verwalten',
+    hi: 'सूचनाएँ प्रबंधित करें',
+    es: 'Administrar notificaciones'
+  };
+  const manageLabel = manageLabels[lang] || manageLabels.en;
+
+  // alert block
+  const renderAlert = a => a ? (() => {
+    const c = alertColor(a.type || 'info');
+    return `
+      <table role="presentation" width="100%" style="margin-bottom:18px">
+        <tr>
+          <td style="background:${c.bg};border:1px solid ${c.border};color:${c.text};padding:12px;border-radius:8px">
+            <div style="font-weight:600">${esc(a.text)}</div>
+          </td>
+        </tr>
+      </table>
+    `;
+  })() : '';
+
+  // social icons render
+  const renderSocial = s => {
+    if (!showSocial) return '';
+    const list = [
+      {key: 'linkedin', url: s.linkedin},
+      {key: 'twitter', url: s.twitter},
+      {key: 'github', url: s.github},
+      {key: 'instagram', url: s.instagram},
+      {key: 'facebook', url: s.facebook}
+    ].filter(x => x.url);
+    if (!list.length) return '';
+    return `
+      <div style="margin-top:12px;display:flex;gap:12px;justify-content:center;align-items:center">
+        ${list.map(it => `<a href="${it.url}" style="color:${esc(theme.muted)};text-decoration:none" aria-label="${it.key}" title="${it.key}">${svg[it.key]}</a>`).join('')}
+      </div>
+    `;
+  };
+
+  // logo render (supports left/center)
+  const renderLogo = l => {
+    if (!l || !l.url) return '';
+    const align = l.align === 'left' ? 'left' : 'center';
+    const href = l.href || baseUrl;
+    const width = l.width || 120;
+    const height = l.height || 40;
+    return `
+      <tr>
+        <td style="padding:20px 30px;text-align:${align}">
+          <a href="${href}" style="display:inline-block;text-decoration:none">
+            <img src="${l.url}" alt="${esc(l.alt || applicationName)}" width="${width}" height="${height}" style="display:block;max-width:100%;height:auto" />
+          </a>
+        </td>
+      </tr>
+    `;
+  };
+
+  // accessibility attributes for links/buttons
+  const a11y = includeAccessibilityAttributes ? 'role="link" tabindex="0"' : '';
+
+  // -------------------------
+  // MAIN TEMPLATE
+  // -------------------------
+  return `<!doctype html>
+<html lang="${esc(lang)}">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>${esc(title)}</title>
+  <style>
+    /* Basic reset */
+    body,table,td,a{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table,td{ mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img{ -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
+    body{ margin:0; padding:0; background:${esc(theme.bg)}; color:${esc(theme.text)}; font-family: Arial, Helvetica, sans-serif; }
+    .email-wrap{ padding:28px 12px; }
+    .card { max-width:720px; margin:0 auto; background:${esc(theme.cardBg)}; border-radius:${esc(theme.radius)}px; border:1px solid ${esc(theme.border)}; overflow:hidden; }
+    .header { padding:12px 20px 6px 20px; text-align:left; }
+    .hero { padding:28px 36px; background: linear-gradient(180deg, ${esc(headerBg)} 0%, ${esc(headerBg)} 100%); color:#fff; text-align:left; }
+    .hero h1 { margin:0; font-size:22px; font-weight:700; }
+    .content { padding:28px 36px; color:${esc(theme.text)}; font-size:16px; line-height:24px; }
+    .cta { margin-top:18px; text-align:left; }
+    .btn-primary {
+      display:inline-block; padding:12px 22px; border-radius:8px; background:${esc(primaryCTA?.color || headerBg)}; color:#fff; text-decoration:none; font-weight:700; font-size:15px;
+    }
+    .btn-secondary {
+      display:inline-block; padding:10px 18px; border-radius:8px; background:transparent; color:${esc(headerBg)}; text-decoration:none; border:1px solid ${esc(theme.border)}; font-weight:700; font-size:14px; margin-left:10px;
+    }
+    .muted { color:${esc(theme.muted)}; font-size:13px; }
+    .divider { height:1px; background:${esc(theme.border)}; margin:20px 0; border:none; }
+    .footer { padding:20px 36px; background:${esc(theme.cardBg)}; color:${esc(theme.muted)}; font-size:13px; text-align:center; border-top:1px solid ${esc(theme.border)}; }
+    .footer a { color:${esc(headerBg)}; text-decoration:none; }
+    .invoice-table { width:100%; margin-top:12px; border-collapse:collapse; }
+    .invoice-table th { text-align:left; padding:8px 0; color:${esc(theme.muted)}; font-weight:600; }
+    .invoice-table td { padding:8px 0; }
+    /* Dark mode */
+    @media (prefers-color-scheme:dark) {
+      body { background:#0b1220!important; color:#e6eef8!important; }
+      .card { background:#0f1724!important; border-color:#1f2937!important; }
+      .content { color:#e6eef8!important; }
+      .muted { color:#9aa4b2!important; }
+      .footer { background:#0f1724!important; color:#9aa4b2!important; border-top-color:#1f2937!important; }
+      .btn-primary { color:#fff!important; }
+    }
+    /* Responsive */
+    @media only screen and (max-width:600px) {
+      .hero, .content, .footer { padding-left:20px!important; padding-right:20px!important; }
+      .hero h1 { font-size:20px!important; }
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
-  <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;opacity:0;mso-hide:all;">${preheader}</div>
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f3f4f6;">
-    <tr>
-      <td align="center" style="padding:20px 10px;">
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-          ${headerText ? `<tr><td align="center" style="padding:32px 24px;background-color:${headerBg};"><h1 style="margin:0;font-size:28px;line-height:36px;font-weight:700;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">${headerText}</h1></td></tr>` : ''}
-          <tr><td class="email-body mobile-pad text-dark" style="padding:32px 40px;background-color:#ffffff;color:#111827;font-size:16px;line-height:24px;font-family:Arial,Helvetica,sans-serif;">${bodyHTML}</td></tr>
-          ${ctaButton ? `<tr><td align="center" style="padding:0 40px 32px 40px;"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td class="btn-td" align="center" style="border-radius:6px;background-color:${ctaButton.color || '#2563eb'};"><a class="btn-a" href="${ctaButton.url}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;">${ctaButton.text}</a></td></tr></table></td></tr>` : ''}
-          <tr><td class="email-footer mobile-pad text-muted" style="padding:24px 40px;background-color:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;line-height:18px;color:#6b7280;font-family:Arial,Helvetica,sans-serif;"><p style="margin:0 0 8px 0;">${footerNote || `This email was sent by ${company}. <a href="${supportUrl}" style="color:#2563eb;">Contact support</a> if you have questions.`}</p><p style="margin:8px 0 0 0;font-size:11px;color:#9ca3af;">&copy; ${year} ${company}. All rights reserved.</p></td></tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+<body>
+  <div class="email-wrap">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <table role="presentation" class="card" width="100%" cellpadding="0" cellspacing="0">
+            ${renderLogo(logo)}
+            <tr>
+              <td class="hero" style="background:${esc(headerBg)};">
+                ${headerText ? `<h1>${esc(headerText)}</h1>` : `<h1>${esc(title)}</h1>`}
+              </td>
+            </tr>
+
+            <tr>
+              <td class="content" style="background:${esc(theme.cardBg)};">
+                ${renderAlert(alert)}
+                ${bodyHTML}
+
+                ${twoColumn ? renderTwoColumn(twoColumn) : ''}
+
+                ${cards && cards.length ? renderCards(cards) : ''}
+
+                ${invoice ? `
+                  <div style="margin-top:18px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                      <div style="font-weight:700">Invoice ${esc(invoice.number || '')}</div>
+                      <div class="muted">Date: ${esc(invoice.date || '')}</div>
+                    </div>
+
+                    <table class="invoice-table" role="presentation" width="100%" style="margin-top:12px;">
+                      <thead>
+                        <tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th></tr>
+                      </thead>
+                      <tbody>
+                        ${buildInvoiceRows(invoice.items || [])}
+                        <tr><td></td><td style="text-align:right;padding-top:12px">Subtotal</td><td style="text-align:right;padding-top:12px">${esc(invoice.subtotal || '')}</td></tr>
+                        <tr><td></td><td style="text-align:right">Tax</td><td style="text-align:right">${esc(invoice.tax || '')}</td></tr>
+                        <tr style="font-weight:700"><td></td><td style="text-align:right">Total</td><td style="text-align:right">${esc(invoice.total || '')}</td></tr>
+                      </tbody>
+                    </table>
+
+                    ${invoice.link ? `<div style="margin-top:12px"><a href="${invoice.link}" class="btn-primary" ${a11y}>View receipt</a></div>` : ''}
+                  </div>
+                ` : ''}
+
+                ${security ? renderSecurity(security) : ''}
+
+                ${review ? renderReview(review) : ''}
+
+                ${primaryCTA ? `<div class="cta"><a href="${primaryCTA.url}" class="btn-primary" ${a11y}>${esc(primaryCTA.text)}</a>${secondaryCTA ? `<a href="${secondaryCTA.url}" class="btn-secondary" ${a11y}>${esc(secondaryCTA.text)}</a>` : ''}</div>` : ''}
+
+                ${showDivider && (cards.length || invoice || security || review) ? `<hr class="divider"/>` : ''}
+                ${renderSocial(social)}
+              </td>
+            </tr>
+
+            <tr>
+              <td class="footer">
+                <div>${footerNote || `This email was sent by ${esc(applicationName)}.`}</div>
+
+                <div style="margin-top:10px;font-size:13px;">
+                  <a href="${support}">Support</a> &nbsp;|&nbsp;
+                  <a href="${privacy}">Privacy</a> &nbsp;|&nbsp;
+                  <a href="${terms}">Terms</a> &nbsp;|&nbsp;
+                  <a href="${notifications}">${esc(manageLabel)}</a> &nbsp;|&nbsp;
+                  <a href="${unsubscribe}">Unsubscribe</a>
+                </div>
+
+                <div style="margin-top:10px;color:${esc(theme.muted)};font-size:12px">&copy; ${year} ${esc(applicationName)}. All rights reserved.</div>
+
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
 </body>
 </html>`;
 };
+
 
 /**
  * USER_CREATED Email Template
