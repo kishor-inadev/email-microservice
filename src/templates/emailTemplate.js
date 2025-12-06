@@ -793,7 +793,7 @@ const PASSWORD_RESET_COMPLETED = ({ username, resetToken, resetUrl }) => {
       preheader: `Your password has been reset successfully.`,
       title: 'Password Reset Completed',
       headerBg: '#10b981',
-      headerText: '✅ Password Reset',
+      headerText: '✅ Password Reset Completed',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
           Hello <strong>${username || 'User'}</strong>,
