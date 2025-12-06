@@ -491,7 +491,7 @@ const PASSWORD_RESET_REQUESTED = ({ username, resetToken, resetUrl }) => {
           <tr><td align="center">
             <table role="presentation" cellspacing="0" cellpadding="0" border="0">
               <tr><td align="center" style="border-radius:6px;background:#ef4444;">
-                <a href="${resetUrl || appUrl + '/reset-password/' + resetToken}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">
+                <a href="${resetUrl || appUrl + '/auth/reset-password/' + resetToken}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">
                   Reset Password
                 </a>
               </td></tr>
@@ -506,11 +506,7 @@ const PASSWORD_RESET_REQUESTED = ({ username, resetToken, resetUrl }) => {
           </td></tr>
         </table>
       `,
-      ctaButton: {
-        url: `${resetUrl || appUrl + '/reset-password' + (resetToken ? '/' + resetToken : '')}`,
-        text: 'Reset Password',
-        color: '#ef4444'
-      },
+      ctaButton: null,
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []

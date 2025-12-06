@@ -6,7 +6,7 @@ const jwtSecret = process.env.JWT_SECRET;
 const refressSecret = process.env.JWT_REFRESH_SECRET;
 const serverPort = process.env.PORT;
 const collectionName = process.env.COLLECTION;
-const appUrl = process.env.APPURL;
+const appUrl = process.env.APPUR || 'localhost:3000';
 
 // # Nodemailer configuration
 
