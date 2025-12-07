@@ -80,7 +80,8 @@ const buildEmailHTML = (opts = {}) => {
     showSocial = true,
     showDivider = true,
     includeAccessibilityAttributes = true,
-    theme = { // theme palette
+    theme = {
+      // theme palette
       bg: '#eef1f5',
       cardBg: '#ffffff',
       text: '#111827',
@@ -115,36 +116,52 @@ const buildEmailHTML = (opts = {}) => {
   // color for alert types
   const alertColor = t => {
     switch (t) {
-      case 'success': return { bg: '#ecfdf5', border: '#bbf7d0', text: '#065f46' };
-      case 'warn': return { bg: '#fff7ed', border: '#ffedd5', text: '#92400e' };
-      case 'error': return { bg: '#fff1f2', border: '#fecaca', text: '#9f1239' };
-      default: return { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1' };
+      case 'success':
+        return { bg: '#ecfdf5', border: '#bbf7d0', text: '#065f46' };
+      case 'warn':
+        return { bg: '#fff7ed', border: '#ffedd5', text: '#92400e' };
+      case 'error':
+        return { bg: '#fff1f2', border: '#fecaca', text: '#9f1239' };
+      default:
+        return { bg: '#f0f9ff', border: '#bae6fd', text: '#0369a1' };
     }
   };
 
   // invoice item row builder
-  const buildInvoiceRows = items => (items || []).map(it => `
+  const buildInvoiceRows = items =>
+    (items || [])
+      .map(
+        it => `
     <tr>
       <td style="padding:8px 0;border-bottom:1px solid ${esc(theme.border)}">${esc(it.desc)}</td>
       <td style="padding:8px 0;border-bottom:1px solid ${esc(theme.border)};text-align:center">${esc(it.qty || 1)}</td>
       <td style="padding:8px 0;border-bottom:1px solid ${esc(theme.border)};text-align:right">${esc(it.price)}</td>
     </tr>
-  `).join('');
+  `
+      )
+      .join('');
 
   // two-column builder (responsive stack)
-  const renderTwoColumn = tc => tc ? `
+  const renderTwoColumn = tc =>
+    tc
+      ? `
     <table role="presentation" width="100%" style="margin-top:18px">
       <tr>
         <td style="vertical-align:top;padding:8px 12px;width:50%">${tc.leftHTML || ''}</td>
         <td style="vertical-align:top;padding:8px 12px;width:50%">${tc.rightHTML || ''}</td>
       </tr>
     </table>
-  ` : '';
+  `
+      : '';
 
   // cards builder
-  const renderCards = arr => (arr && arr.length) ? `
+  const renderCards = arr =>
+    arr && arr.length
+      ? `
     <table role="presentation" width="100%" style="margin-top:18px">
-      ${arr.map(card => `
+      ${arr
+        .map(
+          card => `
         <tr>
           <td style="padding:12px;border:1px solid ${esc(theme.border)};border-radius:8px;margin-bottom:12px;">
             <div style="display:flex;gap:12px;align-items:center;">
@@ -157,12 +174,17 @@ const buildEmailHTML = (opts = {}) => {
             </div>
           </td>
         </tr>
-      `).join('')}
+      `
+        )
+        .join('')}
     </table>
-  ` : '';
+  `
+      : '';
 
   // security block
-  const renderSecurity = s => s ? `
+  const renderSecurity = s =>
+    s
+      ? `
     <table role="presentation" width="100%" style="margin-top:18px;border-radius:8px;background:${esc(theme.cardBg)};border:1px solid ${esc(theme.border)};">
       <tr><td style="padding:12px">
         <div style="font-weight:700;margin-bottom:8px">Security details</div>
@@ -176,10 +198,13 @@ const buildEmailHTML = (opts = {}) => {
         </div>
       </td></tr>
     </table>
-  ` : '';
+  `
+      : '';
 
   // review block
-  const renderReview = r => r ? `
+  const renderReview = r =>
+    r
+      ? `
     <table role="presentation" width="100%" style="margin-top:18px;">
       <tr>
         <td style="padding:12px;border-radius:8px;border:1px solid ${esc(theme.border)};background:${esc(theme.cardBg)}">
@@ -191,7 +216,8 @@ const buildEmailHTML = (opts = {}) => {
         </td>
       </tr>
     </table>
-  ` : '';
+  `
+      : '';
 
   // footer multilingual labels
   const manageLabels = {
@@ -204,9 +230,11 @@ const buildEmailHTML = (opts = {}) => {
   const manageLabel = manageLabels[lang] || manageLabels.en;
 
   // alert block
-  const renderAlert = a => a ? (() => {
-    const c = alertColor(a.type || 'info');
-    return `
+  const renderAlert = a =>
+    a
+      ? (() => {
+          const c = alertColor(a.type || 'info');
+          return `
       <table role="presentation" width="100%" style="margin-bottom:18px">
         <tr>
           <td style="background:${c.bg};border:1px solid ${c.border};color:${c.text};padding:12px;border-radius:8px">
@@ -215,17 +243,18 @@ const buildEmailHTML = (opts = {}) => {
         </tr>
       </table>
     `;
-  })() : '';
+        })()
+      : '';
 
   // social icons render
   const renderSocial = s => {
     if (!showSocial) return '';
     const list = [
-      {key: 'linkedin', url: s.linkedin},
-      {key: 'twitter', url: s.twitter},
-      {key: 'github', url: s.github},
-      {key: 'instagram', url: s.instagram},
-      {key: 'facebook', url: s.facebook}
+      { key: 'linkedin', url: s.linkedin },
+      { key: 'twitter', url: s.twitter },
+      { key: 'github', url: s.github },
+      { key: 'instagram', url: s.instagram },
+      { key: 'facebook', url: s.facebook }
     ].filter(x => x.url);
     if (!list.length) return '';
     return `
@@ -329,7 +358,9 @@ const buildEmailHTML = (opts = {}) => {
 
                 ${cards && cards.length ? renderCards(cards) : ''}
 
-                ${invoice ? `
+                ${
+                  invoice
+                    ? `
                   <div style="margin-top:18px;">
                     <div style="display:flex;justify-content:space-between;align-items:center">
                       <div style="font-weight:700">Invoice ${esc(invoice.number || '')}</div>
@@ -350,7 +381,9 @@ const buildEmailHTML = (opts = {}) => {
 
                     ${invoice.link ? `<div style="margin-top:12px"><a href="${invoice.link}" class="btn-primary" ${a11y}>View receipt</a></div>` : ''}
                   </div>
-                ` : ''}
+                `
+                    : ''
+                }
 
                 ${security ? renderSecurity(security) : ''}
 
@@ -388,7 +421,6 @@ const buildEmailHTML = (opts = {}) => {
 </body>
 </html>`;
 };
-
 
 /**
  * USER_CREATED Email Template
@@ -702,7 +734,7 @@ const PERMISSION_CHANGED = ({ username, roleName, permissions, changedBy }) => {
  * PASSWORD_CHANGED Email Template
  * Sent when: Your password has been changed successfully.
  */
-const PASSWORD_CHANGED = ({ username,appUrl }) => {
+const PASSWORD_CHANGED = ({ username, appUrl }) => {
   return {
     subject: `Password Changed Successfully`,
     html: buildEmailHTML({
@@ -2818,7 +2850,6 @@ const welcomeEmailTemplate = (data = {}) => {
   };
 };
 
-
 /**
  * emailVerificationTemplate - Modern Email Verification
  */
@@ -2876,35 +2907,58 @@ const EMAIL_VERIFICATION_SEND = ({ username, token, security }) => {
   };
 };
 
-
 /**
- * emailVerificationSuccessTemplate - Email Successfully Verified
+ * emailVerificationSuccessTemplate - Email Verified Success
  */
-const emailVerificationSuccessTemplate = ({ username }) => {
+const USER_EMAIL_VERIFIED = ({ username }) => {
+  const userNameSafe = username || 'User';
+  const appName = applicaionName || 'Our App';
+  const dashboardUrl = `${appUrl  || '#'}/dashboard`;
+
   return {
-    subject: `Email Successfully Verified`,
+    subject: `Your Email Has Been Verified ✔`,
     html: buildEmailHTML({
-      preheader: `Email Successfully Verified`,
-      title: 'Email Successfully Verified',
+      preheader: `Your email has been successfully verified`,
+      title: `Email Verified Successfully`,
       headerBg: '#10b981',
-      headerText: '✅ Email Successfully Verified',
+      headerText: `🎉 You’re Verified!`,
+      alert: {
+        type: 'success',
+        text: 'Thank you! Your email is now verified and your account is fully active.'
+      },
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
-        </p>
-        <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+          Hi <strong>${userNameSafe}</strong>,
         </p>
 
-        <!-- Add dynamic content here based on parameters -->
+        <p style="margin:0 0 18px 0;color:#4b5563;">
+          🎉 Congratulations! Your email address has been successfully verified and your ${appName} account is now fully set up.
+        </p>
 
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
+        <p style="margin:0 0 18px 0;color:#4b5563;">
+          You now have access to all features and services. We’re excited to have you with us!
+        </p>
+
+        <p style="margin:0 0 24px 0;color:#4b5563;">
+          If you didn’t request this or have any concerns, our support team is here to help.
+        </p>
+
+        <p style="margin-top:24px;color:#4b5563;">
+          Cheers,<br/>
+          <strong style="color:#111827;">The ${appName} Team</strong>
         </p>
       `,
-      ctaButton: null,
-      footerNote: null
+      primaryCTA: {
+        text: 'Go to Dashboard',
+        url: dashboardUrl,
+        color: '#0ea271'
+      },
+      // Optional secondary CTA
+      // secondaryCTA: {
+      //   text: "Manage Account",
+      //   url: `${appUrl || frontendUrl || '#'}/account`
+      // },
+      footerNote: `You’re receiving this because you registered with ${appName}.`
     }),
     attachments: []
   };
@@ -14864,7 +14918,7 @@ module.exports = {
   otpEmailTemplate,
   welcomeEmailTemplate,
   EMAIL_VERIFICATION_SEND,
-  emailVerificationSuccessTemplate,
+  USER_EMAIL_VERIFIED,
   passwordResetRequestTemplate,
   passwordResetSuccessTemplate,
   passwordChangedSuccessTemplate,
