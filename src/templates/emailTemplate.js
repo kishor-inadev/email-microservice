@@ -702,7 +702,7 @@ const PERMISSION_CHANGED = ({ username, roleName, permissions, changedBy }) => {
  * PASSWORD_CHANGED Email Template
  * Sent when: Your password has been changed successfully.
  */
-const PASSWORD_CHANGED = ({ username, resetToken, resetUrl }) => {
+const PASSWORD_CHANGED = ({ username,appUrl }) => {
   return {
     subject: `Password Changed Successfully`,
     html: buildEmailHTML({
