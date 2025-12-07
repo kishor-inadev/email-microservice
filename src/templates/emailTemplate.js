@@ -1,4 +1,4 @@
-const { appUrl, applicaionName, frontendUrl } = require('../config/setting');
+const { appUrl, applicaionName } = require('../config/setting');
 
 /**
  * =====================================================================================
@@ -356,7 +356,7 @@ const buildEmailHTML = (opts = {}) => {
 
                 ${review ? renderReview(review) : ''}
 
-                ${primaryCTA ? `<div class="cta"><a href="${primaryCTA.url}" class="btn-primary" ${a11y}>${esc(primaryCTA.text)}</a>${secondaryCTA ? `<a href="${secondaryCTA.url}" class="btn-secondary" ${a11y}>${esc(secondaryCTA.text)}</a>` : ''}</div>` : ''}
+                ${primaryCTA ? `<div class="cta"><a href="${primaryCTA.url}" style="color:"#fff"" class="btn-primary" ${a11y}>${esc(primaryCTA.text)}</a>${secondaryCTA ? `<a href="${secondaryCTA.url}" class="btn-secondary" ${a11y}>${esc(secondaryCTA.text)}</a>` : ''}</div>` : ''}
 
                 ${showDivider && (cards.length || invoice || security || review) ? `<hr class="divider"/>` : ''}
                 ${renderSocial(social)}
@@ -2818,38 +2818,64 @@ const welcomeEmailTemplate = (data = {}) => {
   };
 };
 
+
 /**
- * emailVerificationTemplate - Please Verify Your Email
+ * emailVerificationTemplate - Modern Email Verification
  */
-const emailVerificationTemplate = ({ id, username, emailVerificationTokens }) => {
+const EMAIL_VERIFICATION_SEND = ({ username, token, security }) => {
+  const verifyUrl = `${appUrl || '#'}/verify-email?token=${token}`;
+
   return {
-    subject: `Please Verify Your Email`,
+    subject: `Verify Your Email Address`,
     html: buildEmailHTML({
-      preheader: `Please Verify Your Email`,
-      title: 'Please Verify Your Email',
+      preheader: `Verify your email to continue using ${applicaionName || 'our service'}.`,
+      title: 'Verify Your Email',
       headerBg: '#2563eb',
-      headerText: '📧 Please Verify Your Email',
+      headerText: '📧 Verify Your Email',
+      applicaionName,
+      appUrl,
+
+      alert: {
+        type: 'info',
+        text: `You're almost there! Please confirm this email address to activate your account.`
+      },
+
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
           Hello <strong>${username || 'User'}</strong>,
         </p>
-        <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+
+        <p style="margin:0 0 18px 0;color:#4b5563;">
+          Thank you for signing up! Please verify your email address to unlock full access.
         </p>
 
-        <!-- Add dynamic content here based on parameters -->
-
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
+        <p style="margin:0 0 24px 0;color:#4b5563;">
+          Click the button below to confirm your email. If you didn’t request this, you can safely ignore this message.
         </p>
       `,
-      ctaButton: null,
-      footerNote: null
+
+      primaryCTA: {
+        url: verifyUrl,
+        text: 'Verify Email'
+      },
+
+      // secondaryCTA: {
+      //   url: verifyUrl,
+      //   text: 'Open Verification Link'
+      // },
+
+      security, // middleware-provided device/ip/os/browser
+
+      footerNote: `
+        If the button doesn’t work, copy & paste the link below:<br/>
+        <span style="word-break:break-all">${verifyUrl}</span>
+      `
     }),
+
     attachments: []
   };
 };
+
 
 /**
  * emailVerificationSuccessTemplate - Email Successfully Verified
@@ -14837,7 +14863,7 @@ const KPI_THRESHOLD_BREACHED = ({
 module.exports = {
   otpEmailTemplate,
   welcomeEmailTemplate,
-  emailVerificationTemplate,
+  EMAIL_VERIFICATION_SEND,
   emailVerificationSuccessTemplate,
   passwordResetRequestTemplate,
   passwordResetSuccessTemplate,
