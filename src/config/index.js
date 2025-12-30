@@ -32,7 +32,7 @@ const config = {
       pass: process.env.SMTP_PASS
     },
     defaults: {
-      fromEmail: process.env.DEFAULT_FROM_EMAIL || 'noreply@company.com',
+      fromEmail: process.env.DEFAULT_FROM_EMAIL || 'noreply@easydev.in',
       fromName: process.env.DEFAULT_FROM_NAME || 'Company'
     },
     retry: {
