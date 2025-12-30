@@ -4070,7 +4070,41 @@ const twoFactorSetupTemplate = ({ username, setupLink }) => {
     attachments: []
   };
 };
+const twoFactorCompletedTemplate = ({ username }) => {
+  return {
+    subject: `Two-Factor Authentication Enabled`,
+    html: buildEmailHTML({
+      preheader: `Two-Factor Authentication Enabled Successfully`,
+      title: 'Two-Factor Authentication Enabled',
+      headerBg: '#059669',
+      headerText: '🔐 Security Upgrade Complete',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${username || 'User'}</strong>,
+        </p>
 
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Great news! Two-Factor Authentication (2FA) has been successfully enabled on your account.
+          This adds an additional verification step each time you sign in, helping keep your account
+          more secure from unauthorized access.
+        </p>
+
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          If you did not make this change or believe this was done in error, please reset your
+          security settings or contact our support team immediately.
+        </p>
+
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          Stay secure,<br/>
+          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
+        </p>
+      `,
+      ctaButton: null,
+      footerNote: null
+    }),
+    attachments: []
+  };
+};
 /**
  * twoFactorCodeTemplate - Your Two-Factor Authentication Code
  */
@@ -15268,5 +15302,5 @@ module.exports = {
   socialLoginConnectionAlertAdminTemplate,
   accountMergeRequestReceivedAdminTemplate,
   highRiskAccountActivityAlertAdminTemplate,
-  accountRecoveryRequestReceivedAdminTemplate
+  accountRecoveryRequestReceivedAdminTemplate,twoFactorCompletedTemplate
 };
