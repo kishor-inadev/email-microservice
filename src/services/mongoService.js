@@ -14,7 +14,7 @@ class MongoService {
     }
 
     try {
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/email-service';
+      const mongoUri = process.env.MONGO_URL || 'mongodb://localhost:27017/email-service';
 
       const options = {
         serverSelectionTimeoutMS: 5000,
