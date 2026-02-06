@@ -35,7 +35,7 @@ RUN chown -R emailservice:nodejs /app
 USER emailservice
 
 # Expose port
-EXPOSE 3500
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

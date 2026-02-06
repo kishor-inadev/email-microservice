@@ -162,11 +162,7 @@ class MongoService {
       const skip = options.skip || 0;
       const sort = options.sort || { createdAt: -1 };
 
-      const logs = await EmailLog.find(query)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean();
+      const logs = await EmailLog.find(query).sort(sort).skip(skip).limit(limit).lean();
 
       const total = await EmailLog.countDocuments(query);
 

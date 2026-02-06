@@ -1,57 +1,4 @@
 const { appUrl, applicaionName } = require('../config/setting');
-
-/**
- * =====================================================================================
- * 🏢 ENTERPRISE EMAIL TEMPLATE LIBRARY v2.0 - PRODUCTION READY
- * =====================================================================================
- *
- * ✅ Fully responsive HTML table layouts (600px container, fluid mobile)
- * ✅ Cross-client compatible (Gmail, Outlook 2007+, Apple Mail, Yahoo, etc.)
- * ✅ Dark mode optimized with @media (prefers-color-scheme: dark)
- * ✅ 100% inline CSS (no external stylesheets)
- * ✅ WCAG 2.1 AA accessibility compliant
- * ✅ Email-safe fonts (Arial, Helvetica, sans-serif)
- * ✅ Professional spacing & typography
- * ✅ Mobile-first responsive with media queries
- * ✅ MSO conditional comments for Outlook
- * ✅ No JavaScript, no external dependencies
- *
- * @version 2.0.0
- * @date October 2025
- * @templates 179
- * @maintainer Enterprise Development Team
- */
-
-// =====================================================================================
-// 🔧 CORE UTILITY: ENTERPRISE EMAIL BUILDER
-// =====================================================================================
-
-/**
- * Build production-ready responsive email HTML
- *
- * Creates enterprise-grade email templates with full responsive support,
- * dark mode compatibility, and cross-client rendering.
- *
- * @param {Object} config - Email configuration object
- * @param {string} config.preheader - Preview text (50-100 chars)
- * @param {string} config.title - Email title for <title> tag
- * @param {string} config.headerBg - Header background color (hex)
- * @param {string} config.headerText - Main header text (H1)
- * @param {string} config.bodyHTML - Main body content (HTML)
- * @param {Object|null} config.ctaButton - { url, text, color }
- * @param {string} config.footerNote - Custom footer text
- * @returns {string} Complete HTML email
- */
-/**
- * Full-featured email HTML generator
- *
- * Supports: logo, social icons, two CTAs, secondary CTA, alert banner,
- * two-column blocks, cards, invoice layout, security badge, review block,
- * multilingual footer, unsubscribe, manage notifications, dark mode,
- * accessibility-friendly markup.
- *
- * Usage example at bottom.
- */
 const buildEmailHTML = (opts = {}) => {
   // -------------------------
   // Defaults & helpers
@@ -426,6 +373,70 @@ const buildEmailHTML = (opts = {}) => {
  * USER_CREATED Email Template
  * Sent when: A new user account has been created.
  */
+
+const CONTACT_NOTIFICATION = ({
+  name,
+  email,
+  phone,
+  company,
+  subject,
+  message,
+  submittedAt,
+  contactId
+}) => {
+  return {
+    subject: `New Contact Form Submission: ${subject || 'No subject'}`,
+    html: buildEmailHTML({
+      preheader: `You received a new contact form submission from ${name || email}.`,
+      title: 'New Contact Form Submission',
+      headerBg: '#6366f1',
+      headerText: '📩 New Contact Inquiry',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          You have received a new contact form submission from your website.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:20px;">
+            <strong style="color:#111827;">Contact Details:</strong><br/>
+            <span style="color:#6b7280;">Name:</span>
+            <strong style="color:#111827;">${name || 'Not provided'}</strong><br/>
+            <span style="color:#6b7280;">Email:</span>
+            <strong style="color:#111827;">${email}</strong><br/>
+            <span style="color:#6b7280;">Phone:</span>
+            <strong style="color:#111827;">${phone || 'Not provided'}</strong><br/>
+            <span style="color:#6b7280;">Company:</span>
+            <strong style="color:#111827;">${company || 'Not provided'}</strong><br/>
+            <span style="color:#6b7280;">Subject:</span>
+            <strong style="color:#111827;">${subject || 'Not provided'}</strong><br/>
+            <span style="color:#6b7280;">Submitted at:</span>
+            <strong style="color:#111827;">${submittedAt}</strong><br/>
+            <span style="color:#6b7280;">Contact ID:</span>
+            <strong style="color:#111827;">${contactId}</strong>
+          </td></tr>
+        </table>
+
+        <p style="margin:0 0 8px 0;color:#4b5563;">
+          <strong style="color:#111827;">Message:</strong>
+        </p>
+        <p style="margin:0 0 0 0;color:#4b5563;white-space:pre-line;">
+          ${message}
+        </p>
+      `,
+      ctaButton: {
+        url: `${appUrl + '/dashboard/contacts'}`,
+        text: 'View in Dashboard',
+        color: '#6366f1'
+      },
+      footerNote: null
+    }),
+    attachments: []
+  };
+};
+
 const USER_CREATED = ({ userId, username, email, timestamp }) => {
   return {
     subject: `New User Account Created`,
@@ -470,24 +481,33 @@ const USER_CREATED = ({ userId, username, email, timestamp }) => {
  * USER_UPDATED Email Template
  * Sent when: Your account information has been updated.
  */
-const USER_UPDATED = ({ userId, username, email, timestamp, reason }) => {
+const USER_UPDATED = ({ userId, username, email, timestamp }) => {
+  const displayName = username || email || 'User';
+
   return {
-    subject: `User Account Updated`,
+    subject: 'User Account Updated',
     html: buildEmailHTML({
-      preheader: `Your account information has been updated.`,
+      preheader: 'Your account information has been updated.',
       title: 'User Account Updated',
       headerBg: '#3b82f6',
       headerText: '✏️ Account Updated',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
+
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your account information has been updated.
+          Your account information has been updated${
+            timestamp ? ` on <strong>${new Date(timestamp).toLocaleString()}</strong>` : ''
+          }.
         </p>
-        
+
         <p style="margin:24px 0 0 0;color:#4b5563;">
           This notification is for your records. No action is required unless specified.
+        </p>
+
+        <p style="margin:8px 0 0 0;color:#9ca3af;font-size:12px;">
+          User ID: ${userId}
         </p>
       `,
       ctaButton: null,
@@ -2913,7 +2933,7 @@ const EMAIL_VERIFICATION_SEND = ({ username, token, security }) => {
 const USER_EMAIL_VERIFIED = ({ username }) => {
   const userNameSafe = username || 'User';
   const appName = applicaionName || 'Our App';
-  const dashboardUrl = `${appUrl  || '#'}/dashboard`;
+  const dashboardUrl = `${appUrl || '#'}/dashboard`;
 
   return {
     subject: `Your Email Has Been Verified ✔`,
@@ -3400,6 +3420,73 @@ const passwordExpiryReminderTemplate = ({ username, resetLink }) => {
       `,
       ctaButton: null,
       footerNote: 'Never share this information with anyone.'
+    }),
+    attachments: []
+  };
+};
+const NEWSLETTER_WELCOME = ({ email, companyName, unsubscribeUrl }) => {
+  return {
+    subject: `Welcome to ${companyName} Newsletter! 🎉`,
+    html: buildEmailHTML({
+      preheader: `Thanks for joining ${companyName} updates and insights`,
+      title: 'Welcome to Our Newsletter',
+      headerBg: '#8b5cf6',
+      headerText: '📬 Welcome Aboard!',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>Newsletter Subscriber</strong>,
+        </p>
+
+        <p style="margin:0 0 24px 0;color:#4b5563;">
+          Thank you for subscribing to <strong>${companyName}</strong> newsletter! 
+          You'll receive our latest updates, tips, and industry insights.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:24px;background:#f3e8ff;border:1px solid #ddd6fe;border-radius:8px;">
+          <tr>
+            <td style="font-size:14px;line-height:20px;text-align:center;">
+              <strong style="color:#6d28d9;">Subscription Details:</strong><br/>
+              <span style="color:#a78bfa;">📧 Email:</span>
+              <strong style="color:#6d28d9;">${email}</strong><br/>
+              <span style="color:#a78bfa;">🏢 Company:</span>
+              <strong style="color:#6d28d9;">${companyName}</strong>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Here's what you'll receive:
+        </p>
+
+        <div style="margin:24px 0;">
+          <div style="padding:16px;margin-bottom:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+            <strong style="color:#3730a3;">🚀 Product Updates</strong><br/>
+            <span style="color:#64748b;font-size:14px;">New features and platform improvements</span>
+          </div>
+          <div style="padding:16px;margin-bottom:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+            <strong style="color:#3730a3;">💡 Development Tips</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Best practices for Next.js, Express.js & more</span>
+          </div>
+          <div style="padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+            <strong style="color:#3730a3;">📊 Industry Insights</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Trends in SaaS, e-commerce, and web development</span>
+          </div>
+        </div>
+
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          You can unsubscribe anytime using the link below.
+        </p>
+      `,
+      ctaButton: {
+        url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/blog`,
+        text: 'Explore Latest Articles →',
+        color: '#8b5cf6'
+      },
+      secondaryCta: {
+        url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}`,
+        text: 'Visit Dashboard'
+      },
+      footerNote: `Happy coding! 🎉 • You're receiving this because you subscribed to ${companyName} newsletter.`
     }),
     attachments: []
   };
@@ -14943,6 +15030,306 @@ const KPI_THRESHOLD_BREACHED = ({
     attachments: []
   };
 };
+const CONTACT_REPLY = ({
+  name,
+  email,
+  phone,
+  company,
+  subject,
+  message,
+  submittedAt,
+  contactId
+}) => {
+  return {
+    subject: `Re: ${subject || 'Your inquiry'}`,
+    html: buildEmailHTML({
+      preheader: `Thank you for contacting us about ${subject || 'your inquiry'}.`,
+      title: 'We received your message',
+      headerBg: '#10b981',
+      headerText: '✅ Message Received',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${name || 'User'}</strong>,
+        </p>
+
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Thank you for reaching out! We received your contact form submission.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:20px;">
+            <strong style="color:#065f46;">Your submission details:</strong><br/>
+            <span style="color:#047857;">Subject:</span>
+            <strong style="color:#065f46;">${subject || 'Not provided'}</strong><br/>
+            <span style="color:#047857;">Submitted:</span>
+            <strong style="color:#065f46;">${submittedAt}</strong><br/>
+            <span style="color:#047857;">Ticket ID:</span>
+            <strong style="color:#065f46;">${contactId}</strong>
+          </td></tr>
+        </table>
+
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Our team will review your message and get back to you within 24-48 hours.
+        </p>
+
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          In the meantime, you can track your inquiry or add more details here:
+        </p>
+      `,
+
+      footerNote:
+        'You received this confirmation because you submitted a contact form on our website.'
+    }),
+    attachments: []
+  };
+};
+
+const INQUIRY_NOTIFICATION = ({
+  name,
+  email,
+  phone,
+  company,
+  projectType,
+  budget,
+  timeline,
+  description,
+  requirements,
+  submittedAt,
+  inquiryId
+}) => {
+  return {
+    subject: `🚀 NEW PROJECT: ${projectType || 'Custom Project'} | ${name || company}`,
+    html: buildEmailHTML({
+      preheader: `New ${projectType} inquiry #${inquiryId.slice(-6)} from ${name || email}`,
+      title: 'New Project Inquiry',
+      headerBg: '#059669',
+      headerText: '💼 NEW PROJECT LEAD',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          <strong>New project inquiry received!</strong>
+        </p>
+
+        <p style="margin:0 0 24px 0;color:#4b5563;">
+          Priority: <strong>${budget && budget !== 'Not provided' ? 'Budget Confirmed' : 'TBD'}</strong> | 
+          ${submittedAt}
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+          <tr>
+            <td style="font-size:14px;line-height:20px;">
+              <strong style="color:#065f46;">Client Information:</strong><br/>
+              <span style="color:#047857;">👤 Name:</span>
+              <strong style="color:#065f46;">${name || 'Not provided'}</strong><br/>
+              <span style="color:#047857;">📧 Email:</span>
+              <strong style="color:#065f46;">${email}</strong><br/>
+              <span style="color:#047857;">📱 Phone:</span>
+              <strong style="color:#065f46;">${phone || 'Not provided'}</strong><br/>
+              <span style="color:#047857;">🏢 Company:</span>
+              <strong style="color:#065f46;">${company || 'Not provided'}</strong>
+            </td>
+          </tr>
+        </table>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:16px 0;padding:20px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;">
+          <tr>
+            <td style="font-size:14px;line-height:20px;">
+              <strong style="color:#065f46;">Project Details:</strong><br/>
+              <span style="color:#047857;">🎯 Type:</span>
+              <strong style="color:#065f46;">${projectType || 'Custom'}</strong><br/>
+              <span style="color:#047857;">💰 Budget:</span>
+              <strong style="color:#065f46;">${budget || 'Not specified'}</strong><br/>
+              <span style="color:#047857;">⏱️ Timeline:</span>
+              <strong style="color:#065f46;">${timeline || 'Not specified'}</strong><br/>
+              <span style="color:#047857;">🆔 Inquiry ID:</span>
+              <strong style="color:#065f46;">${inquiryId}</strong>
+            </td>
+          </tr>
+        </table>
+
+        ${
+          description
+            ? `
+              <p style="margin:0 0 8px 0;color:#4b5563;">
+                <strong style="color:#111827;">Project Description:</strong>
+              </p>
+              <div style="margin:0 0 24px 0;padding:20px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:15px;line-height:22px;color:#0369a1;white-space:pre-wrap;">
+                ${description}
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          requirements && requirements.length > 0
+            ? `
+              <p style="margin:0 0 8px 0;color:#4b5563;">
+                <strong style="color:#111827;">Requirements:</strong>
+              </p>
+              <div style="margin:0 0 24px 0;">
+                ${requirements
+                  .map(
+                    (req, i) => `
+                  <div style="padding:12px;margin-bottom:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;">
+                    ${i + 1}. ${req}
+                  </div>
+                `
+                  )
+                  .join('')}
+              </div>
+            `
+            : ''
+        }
+      `,
+      ctaButton: {
+        url: `${appUrl}/dashboard/inquiries/${inquiryId}`,
+        text: 'View Project Lead →',
+        color: '#059669'
+      },
+      secondaryCta: {
+        url: `${appUrl}/dashboard/inquiries`,
+        text: 'All Inquiries'
+      },
+      footerNote: `Project Lead #${inquiryId.slice(-6)} • High priority - respond ASAP`
+    }),
+    attachments: []
+  };
+};
+const CONTACT_CONFIRMATION = ({ name, subject, companyName, contactId }) => {
+  return {
+    subject: `✅ ${companyName}: We received your "${subject || 'inquiry'}"`,
+    html: buildEmailHTML({
+      preheader: `Thank you for contacting ${companyName}! Your message has been received.`,
+      title: 'Your Message is Confirmed',
+      headerBg: '#10b981',
+      headerText: '✅ Received!',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${name || 'there'}</strong>,
+        </p>
+
+        <p style="margin:0 0 24px 0;color:#4b5563;">
+          Thank you for reaching out to <strong>${companyName}</strong>! 
+          We've successfully received your inquiry and it will be reviewed by our team shortly.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+          <tr>
+            <td style="font-size:14px;line-height:20px;text-align:center;">
+              <strong style="color:#065f46;">Confirmation Details:</strong><br/>
+              <span style="color:#047857;">📋 Subject:</span>
+              <strong style="color:#065f46;">${subject || 'General inquiry'}</strong><br/>
+              <span style="color:#047857;">🆔 Reference ID:</span>
+              <strong style="color:#065f46;">${contactId}</strong><br/>
+              <span style="color:#047857;">🏢 Company:</span>
+              <strong style="color:#065f46;">${companyName}</strong>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          <strong>What happens next:</strong>
+        </p>
+
+        <div style="margin:24px 0;">
+          <div style="padding:16px;margin-bottom:12px;background:#f8fafc;border-left:4px solid #10b981;border-radius:0 8px 8px 0;">
+            <strong>📋 Review</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Our team reviews within 24 hours</span>
+          </div>
+          <div style="padding:16px;margin-bottom:12px;background:#f8fafc;border-left:4px solid #10b981;border-radius:0 8px 8px 0;">
+            <strong>💬 Response</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Detailed reply sent to you</span>
+          </div>
+          <div style="padding:16px;background:#f8fafc;border-left:4px solid #10b981;border-radius:0 8px 8px 0;">
+            <strong>🚀 Action</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Next steps & scheduling</span>
+          </div>
+        </div>
+      `,
+      ctaButton: {
+        url: `${appUrl}/support/ticket/${contactId}`,
+        text: 'Track Status',
+        color: '#10b981'
+      },
+      secondaryCta: {
+        url: `${appUrl}/support`,
+        text: 'Help Center'
+      },
+      footerNote: `Ref: ${contactId.slice(-6)} • Reply to this email if you have questions.`
+    }),
+    attachments: []
+  };
+};
+const INQUIRY_CONFIRMATION = ({ name, projectType, budget, timeline, companyName, inquiryId }) => {
+  return {
+    subject: `✅ ${companyName}: ${projectType || 'Project'} Inquiry Confirmed`,
+    html: buildEmailHTML({
+      preheader: `Your ${projectType || 'project'} inquiry has been received & queued for review`,
+      title: 'Project Inquiry Confirmed',
+      headerBg: '#059669',
+      headerText: '✅ Inquiry Received!',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${name || 'there'}</strong>,
+        </p>
+
+        <p style="margin:0 0 24px 0;color:#4b5563;">
+          Thank you for your project inquiry with <strong>${companyName}</strong>! 
+          We've received your details and our team will review and respond within <strong>24 hours</strong>.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+          <tr>
+            <td style="font-size:14px;line-height:20px;text-align:center;">
+              <strong style="color:#065f46;">Your Project Summary:</strong><br/>
+              <span style="color:#047857;">🎯 Project Type:</span>
+              <strong style="color:#065f46;">${projectType || 'Custom Development'}</strong><br/>
+              <span style="color:#047857;">💰 Budget Range:</span>
+              <strong style="color:#065f46;">${budget || 'To be discussed'}</strong><br/>
+              <span style="color:#047857;">⏱️ Timeline:</span>
+              <strong style="color:#065f46;">${timeline || 'Flexible'}</strong><br/>
+              <span style="color:#047857;">🆔 Inquiry ID:</span>
+              <strong style="color:#065f46;">${inquiryId}</strong>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:24px 0 0 0;color:#4b5563;font-size:15px;line-height:22px;">
+          <strong>Next steps:</strong>
+        </p>
+
+        <div style="margin:24px 0;">
+          <div style="padding:16px;margin-bottom:12px;background:#f8fafc;border-left:4px solid #059669;border-radius:0 8px 8px 0;">
+            <strong>👥 Team Assignment</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Project manager assigned within 24hrs</span>
+          </div>
+          <div style="padding:16px;margin-bottom:12px;background:#f8fafc;border-left:4px solid #059669;border-radius:0 8px 8px 0;">
+            <strong>📋 Proposal</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Detailed scope & pricing sent</span>
+          </div>
+          <div style="padding:16px;background:#f8fafc;border-left:4px solid #059669;border-radius:0 8px 8px 0;">
+            <strong>📞 Kickoff Call</strong><br/>
+            <span style="color:#64748b;font-size:14px;">Schedule discovery meeting</span>
+          </div>
+        </div>
+
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          Questions? Reply to this email anytime.
+        </p>
+      `,
+      ctaButton: {
+        url: `${appUrl}/inquiries/${inquiryId}`,
+        text: 'Track Your Project',
+        color: '#059669'
+      },
+      secondaryCta: {
+        url: `${appUrl}/services`,
+        text: 'View Our Services'
+      },
+      footerNote: `Project Ref: ${inquiryId.slice(-6)} • ${companyName} Team`
+    }),
+    attachments: []
+  };
+};
 
 // =====================================================================================
 // 📤 MODULE EXPORTS
@@ -14950,6 +15337,9 @@ const KPI_THRESHOLD_BREACHED = ({
 
 module.exports = {
   otpEmailTemplate,
+  INQUIRY_NOTIFICATION,
+  CONTACT_CONFIRMATION,
+  INQUIRY_CONFIRMATION,
   welcomeEmailTemplate,
   EMAIL_VERIFICATION_SEND,
   USER_EMAIL_VERIFIED,
@@ -14976,6 +15366,7 @@ module.exports = {
   USER_REINSTATED,
   ROLE_ASSIGNED,
   ROLE_REVOKED,
+  CONTACT_REPLY,
   PERMISSION_CHANGED,
   PASSWORD_CHANGED,
   PASSWORD_RESET_REQUESTED,
@@ -15230,6 +15621,7 @@ module.exports = {
   partialRefundProcessedTemplate,
   paymentSuccessfulTemplate,
   paymentMethodExpiringSoonTemplate,
+  CONTACT_NOTIFICATION,
   subscriptionStartedTemplate,
   subscriptionRenewedSuccessfullyTemplate,
   subscriptionFailedRetryNeededTemplate,
@@ -15302,5 +15694,7 @@ module.exports = {
   socialLoginConnectionAlertAdminTemplate,
   accountMergeRequestReceivedAdminTemplate,
   highRiskAccountActivityAlertAdminTemplate,
-  accountRecoveryRequestReceivedAdminTemplate,twoFactorCompletedTemplate
+  accountRecoveryRequestReceivedAdminTemplate,
+  twoFactorCompletedTemplate,
+  NEWSLETTER_WELCOME
 };
