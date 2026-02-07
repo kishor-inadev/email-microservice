@@ -1,40 +1,80 @@
+/**
+ * High-Performance Logger with Environment-Based Enable/Disable
+ * When disabled, uses no-op functions for zero overhead
+ */
+
+const ENABLE_LOGGING = process.env.ENABLE_LOGGING !== 'false';
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+
+// No-op logger for maximum performance when logging is disabled
+const noopLogger = {
+  error: () => { },
+  warn: () => { },
+  info: () => { },
+  http: () => { },
+  verbose: () => { },
+  debug: () => { },
+  silly: () => { },
+  log: () => { },
+  child: () => noopLogger,
+  transports: [],
+  clear: () => { },
+  add: () => { },
+  exceptions: { handle: () => { } },
+  rejections: { handle: () => { } }
+};
+
+// Export no-op logger immediately if logging is disabled (fastest path)
+if (!ENABLE_LOGGING) {
+  module.exports = noopLogger;
+  return;
+}
+
+// Only load winston when logging is enabled
 const winston = require('winston');
 const fs = require('fs');
 const path = require('path');
 
-// Check if file logging is enabled
 const enableFileLogs = process.env.ENABLE_FILE_LOGS === 'true';
 
-// Define log format
-const logFormat = winston.format.combine(
-  winston.format.timestamp({
-    format: 'YYYY-MM-DD HH:mm:ss.SSS'
-  }),
-  winston.format.errors({ stack: true }),
-  winston.format.json(),
-  winston.format.prettyPrint()
+// Minimal format for production (faster JSON serialization)
+const productionFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
+  winston.format.json()
 );
 
-// Create logger object
+// Pretty format for development
+const developmentFormat = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+  winston.format.errors({ stack: true }),
+  winston.format.colorize({ all: true }),
+  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+    const metaStr = Object.keys(meta).length > 2 ? ` ${JSON.stringify(meta)}` : '';
+    return `${timestamp} ${level}: ${message}${metaStr}`;
+  })
+);
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Create logger with minimal overhead
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: logFormat,
+  level: LOG_LEVEL,
+  format: isProduction ? productionFormat : developmentFormat,
   defaultMeta: {
     service: 'email-microservice',
-    version: require('../../package.json').version,
-    environment: process.env.NODE_ENV || 'development'
+    pid: process.pid
   },
   transports: [
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize({ all: true }),
-        winston.format.simple()
-      )
+      // Disable console in production if only file logging is needed
+      silent: process.env.DISABLE_CONSOLE_LOG === 'true'
     })
-  ]
+  ],
+  // Disable exception/rejection handling by default for performance
+  exitOnError: false
 });
 
-// ➤ If file logging is enabled, configure folder + file transports
+// Add file transports only if explicitly enabled
 if (enableFileLogs) {
   const logsDir = path.join(process.cwd(), 'logs');
 
@@ -60,25 +100,11 @@ if (enableFileLogs) {
       tailable: true
     })
   );
-
-  logger.exceptions.handle(
-    new winston.transports.File({ filename: path.join(logsDir, 'exceptions.log') })
-  );
-
-  logger.rejections.handle(
-    new winston.transports.File({ filename: path.join(logsDir, 'rejections.log') })
-  );
 }
 
-// Disable file logs during test
+// Silent mode for tests
 if (process.env.NODE_ENV === 'test') {
-  logger.clear();
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-      silent: true
-    })
-  );
+  logger.transports.forEach(t => (t.silent = true));
 }
 
 module.exports = logger;
