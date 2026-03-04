@@ -7,84 +7,20 @@ const { DatabaseError } = require('../utils/errors');
 
 class MongoService {
   constructor() {
-    this.connected = false;
-    this.connection = null;
     this.circuitBreaker = circuitBreakers.database;
   }
 
-  async connect() {
-    if (this.connected) {
-      return this.connection;
-    }
-
-    const startTime = Date.now();
-
-    try {
-      const mongoUri = process.env.MONGO_URL || 'mongodb://localhost:27017/email-service';
-
-      // Optimized connection options for high throughput
-      const options = {
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-        maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE) || 50, // Increased for 1000 RPS
-        minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE) || 10,
-        maxIdleTimeMS: 30000,
-        waitQueueTimeoutMS: 10000,
-        // Write concern for faster writes (trade-off: eventual consistency)
-        writeConcern: {
-          w: parseInt(process.env.MONGO_WRITE_CONCERN) || 1,
-          wtimeout: 5000
-        },
-        // Read preference for scaling
-        readPreference: process.env.MONGO_READ_PREFERENCE || 'primaryPreferred'
-      };
-
-      this.connection = await mongoose.connect(mongoUri, options);
-      this.connected = true;
-
-      const duration = Date.now() - startTime;
-      metrics.recordDbOperation('connect', duration, true);
-
-      logger.info('MongoDB connected successfully', {
-        host: this.connection.connection.host,
-        database: this.connection.connection.name,
-        maxPoolSize: options.maxPoolSize,
-        duration
-      });
-
-      // Connection event handlers
-      mongoose.connection.on('error', error => {
-        logger.error('MongoDB connection error', { error: error.message });
-        metrics.recordError('MONGODB_CONNECTION_ERROR');
-      });
-
-      mongoose.connection.on('disconnected', () => {
-        logger.warn('MongoDB disconnected');
-        this.connected = false;
-      });
-
-      mongoose.connection.on('reconnected', () => {
-        logger.info('MongoDB reconnected');
-        this.connected = true;
-      });
-
-      return this.connection;
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      metrics.recordDbOperation('connect', duration, false);
-
-      logger.error('Failed to connect to MongoDB', {
-        error: error.message,
-        stack: error.stack
-      });
-      throw new DatabaseError(`MongoDB connection failed: ${error.message}`, 'connect');
-    }
+  /**
+   * Check if MongoDB is connected.
+   * Relies on the shared mongoose connection established by dbConnect.js.
+   */
+  isConnected() {
+    return mongoose.connection.readyState === 1;
   }
 
   async disconnect() {
-    if (this.connected) {
+    if (this.isConnected()) {
       await mongoose.disconnect();
-      this.connected = false;
       logger.info('MongoDB disconnected');
     }
   }
@@ -301,10 +237,6 @@ class MongoService {
   /** Get circuit breaker status */
   getCircuitBreakerStatus() {
     return this.circuitBreaker.getStatus();
-  }
-
-  isConnected() {
-    return this.connected && mongoose.connection.readyState === 1;
   }
 }
 

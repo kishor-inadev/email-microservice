@@ -9,7 +9,7 @@ class KafkaProducer {
     });
 
     this.producer = this.kafka.producer({
-      maxInFlightRequests: 1,
+      maxInFlightRequests: 5, // Was 1 — pipeline blocked; 5 is safe with idempotent
       idempotent: true,
       transactionTimeout: 30000
     });
@@ -35,7 +35,7 @@ class KafkaProducer {
     }
 
     try {
-      const messagePayload = {
+      const result = await this.producer.send({
         topic,
         messages: [
           {
@@ -44,65 +44,55 @@ class KafkaProducer {
             timestamp: Date.now().toString()
           }
         ]
-      };
-
-      const result = await this.producer.send(messagePayload);
-
-      // logger.debug('Message published to Kafka', {
-      //   topic,
-      //   partition: result[0]?.partition,
-      //   offset: result[0]?.offset,
-      //   key
-      // });
+      });
 
       return result;
     } catch (error) {
       logger.error('Failed to publish message to Kafka', {
         topic,
-        error: error.message,
-        stack: error.stack
+        error: error.message
       });
       throw error;
     }
   }
 
   async publishEmailSuccess(originalPayload, result) {
-    const successPayload = {
-      originalMessage: originalPayload,
-      result: {
-        messageId: result.messageId,
-        accepted: result.accepted,
-        rejected: result.rejected
-      },
-      status: 'success',
-      timestamp: new Date().toISOString(),
-      processedAt: new Date().toISOString()
-    };
+    const now = new Date().toISOString();
 
     await this.publishMessage(
       process.env.KAFKA_TOPIC_SUCCESS || 'email.success',
-      successPayload,
+      {
+        originalMessage: originalPayload,
+        result: {
+          messageId: result.messageId,
+          accepted: result.accepted,
+          rejected: result.rejected
+        },
+        status: 'success',
+        timestamp: now,
+        processedAt: now
+      },
       originalPayload.idempotencyKey || originalPayload.requestId
     );
   }
 
   async publishEmailFailure(originalPayload, error, retryCount = 0) {
-    const failurePayload = {
-      originalMessage: originalPayload,
-      error: {
-        message: error.message,
-        code: error.code,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      },
-      status: 'failed',
-      retryCount,
-      timestamp: new Date().toISOString(),
-      failedAt: new Date().toISOString()
-    };
+    const now = new Date().toISOString();
 
     await this.publishMessage(
       process.env.KAFKA_TOPIC_FAILED || 'email.failed',
-      failurePayload,
+      {
+        originalMessage: originalPayload,
+        error: {
+          message: error.message,
+          code: error.code,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        },
+        status: 'failed',
+        retryCount,
+        timestamp: now,
+        failedAt: now
+      },
       originalPayload.idempotencyKey || originalPayload.requestId
     );
   }
@@ -111,7 +101,6 @@ class KafkaProducer {
     if (this.connected) {
       await this.producer.disconnect();
       this.connected = false;
-      // logger.info('Kafka producer disconnected');
     }
   }
 }
@@ -119,15 +108,9 @@ class KafkaProducer {
 // Export singleton instance
 const kafkaProducer = new KafkaProducer();
 
-// Export convenience function
-async function publishToKafka(topic, message, key = null) {
-  return await kafkaProducer.publishMessage(topic, message, key);
-}
-
 module.exports = {
   kafkaProducer,
-  publishToKafka,
+  publishToKafka: (topic, message, key = null) => kafkaProducer.publishMessage(topic, message, key),
   publishEmailSuccess: (payload, result) => kafkaProducer.publishEmailSuccess(payload, result),
-  publishEmailFailure: (payload, error, retryCount) =>
-    kafkaProducer.publishEmailFailure(payload, error, retryCount)
+  publishEmailFailure: (payload, error, retryCount) => kafkaProducer.publishEmailFailure(payload, error, retryCount)
 };

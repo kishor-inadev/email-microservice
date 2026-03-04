@@ -1,32 +1,18 @@
 /**
  * Circuit Breaker Pattern Implementation
- * Prevents cascading failures by failing fast when a service is unhealthy
+ * Optimized: ring buffer for state history, lazy timestamps
  */
 
 const EventEmitter = require('events');
 const logger = require('./logger');
 
-// Circuit states
 const STATES = {
-    CLOSED: 'CLOSED', // Normal operation
-    OPEN: 'OPEN', // Failing fast
-    HALF_OPEN: 'HALF_OPEN' // Testing if service recovered
+    CLOSED: 'CLOSED',
+    OPEN: 'OPEN',
+    HALF_OPEN: 'HALF_OPEN'
 };
 
-/**
- * Circuit Breaker Class
- * Monitors failures and opens circuit when threshold is exceeded
- */
 class CircuitBreaker extends EventEmitter {
-    /**
-     * @param {Object} options - Configuration options
-     * @param {string} options.name - Name for logging
-     * @param {number} options.failureThreshold - Number of failures before opening (default: 5)
-     * @param {number} options.resetTimeout - Time in ms to wait before testing recovery (default: 30000)
-     * @param {number} options.halfOpenRequests - Number of requests to allow in half-open state (default: 3)
-     * @param {number} options.monitorInterval - Interval in ms to check for state transitions (default: 5000)
-     * @param {number} options.successThreshold - Successes needed in half-open to close (default: 3)
-     */
     constructor(options = {}) {
         super();
 
@@ -43,14 +29,17 @@ class CircuitBreaker extends EventEmitter {
         this.lastFailureTime = null;
         this.lastStateChange = Date.now();
 
+        // Ring buffer for state history (max 20 entries) — avoids shift() O(n)
+        this._historyBuffer = new Array(20);
+        this._historyIdx = 0;
+        this._historyCount = 0;
+
         // Statistics
         this.stats = {
             totalCalls: 0,
             totalSuccesses: 0,
             totalFailures: 0,
-            rejectedCalls: 0,
-            lastStateChange: null,
-            stateHistory: []
+            rejectedCalls: 0
         };
 
         logger.info(`Circuit breaker initialized: ${this.name}`, {
@@ -60,15 +49,9 @@ class CircuitBreaker extends EventEmitter {
         });
     }
 
-    /**
-     * Execute a function through the circuit breaker
-     * @param {Function} fn - Async function to execute
-     * @returns {Promise} Result of the function
-     */
     async execute(fn) {
         this.stats.totalCalls++;
 
-        // Check if circuit is open
         if (this.state === STATES.OPEN) {
             if (this.shouldAttemptReset()) {
                 this.transitionTo(STATES.HALF_OPEN);
@@ -80,7 +63,6 @@ class CircuitBreaker extends EventEmitter {
             }
         }
 
-        // Check half-open limits
         if (this.state === STATES.HALF_OPEN) {
             if (this.halfOpenAttempts >= this.halfOpenRequests) {
                 this.stats.rejectedCalls++;
@@ -101,9 +83,6 @@ class CircuitBreaker extends EventEmitter {
         }
     }
 
-    /**
-     * Handle successful execution
-     */
     onSuccess() {
         this.stats.totalSuccesses++;
 
@@ -113,14 +92,10 @@ class CircuitBreaker extends EventEmitter {
                 this.transitionTo(STATES.CLOSED);
             }
         } else if (this.state === STATES.CLOSED) {
-            // Reset failure count on success
             this.failures = 0;
         }
     }
 
-    /**
-     * Handle failed execution
-     */
     onFailure(error) {
         this.stats.totalFailures++;
         this.failures++;
@@ -134,41 +109,30 @@ class CircuitBreaker extends EventEmitter {
         });
 
         if (this.state === STATES.HALF_OPEN) {
-            // Any failure in half-open state reopens the circuit
             this.transitionTo(STATES.OPEN);
         } else if (this.state === STATES.CLOSED && this.failures >= this.failureThreshold) {
             this.transitionTo(STATES.OPEN);
         }
     }
 
-    /**
-     * Check if we should attempt to reset the circuit
-     */
     shouldAttemptReset() {
         return Date.now() - this.lastFailureTime >= this.resetTimeout;
     }
 
-    /**
-     * Transition to a new state
-     */
     transitionTo(newState) {
         const oldState = this.state;
         this.state = newState;
         this.lastStateChange = Date.now();
 
-        // Record state change
-        this.stats.stateHistory.push({
+        // Ring buffer write — O(1), no shift()
+        this._historyBuffer[this._historyIdx] = {
             from: oldState,
             to: newState,
-            timestamp: new Date().toISOString()
-        });
+            timestamp: this.lastStateChange
+        };
+        this._historyIdx = (this._historyIdx + 1) % 20;
+        if (this._historyCount < 20) this._historyCount++;
 
-        // Keep only last 20 state changes
-        if (this.stats.stateHistory.length > 20) {
-            this.stats.stateHistory.shift();
-        }
-
-        // Reset counters based on new state
         if (newState === STATES.CLOSED) {
             this.failures = 0;
             this.successes = 0;
@@ -186,25 +150,28 @@ class CircuitBreaker extends EventEmitter {
         this.emit('stateChange', { from: oldState, to: newState, name: this.name });
     }
 
-    /**
-     * Force the circuit open (for manual intervention)
-     */
     forceOpen() {
         this.transitionTo(STATES.OPEN);
         this.lastFailureTime = Date.now();
     }
 
-    /**
-     * Force the circuit closed (for manual intervention)
-     */
     forceClose() {
         this.transitionTo(STATES.CLOSED);
     }
 
-    /**
-     * Get current status
-     */
     getStatus() {
+        // Materialize ring buffer to array only on demand
+        const history = [];
+        const start = this._historyCount < 20 ? 0 : this._historyIdx;
+        for (let i = 0; i < this._historyCount; i++) {
+            const entry = this._historyBuffer[(start + i) % 20];
+            history.push({
+                from: entry.from,
+                to: entry.to,
+                timestamp: new Date(entry.timestamp).toISOString()
+            });
+        }
+
         return {
             name: this.name,
             state: this.state,
@@ -214,13 +181,10 @@ class CircuitBreaker extends EventEmitter {
                 ? new Date(this.lastFailureTime).toISOString()
                 : null,
             lastStateChange: new Date(this.lastStateChange).toISOString(),
-            stats: this.stats
+            stats: { ...this.stats, stateHistory: history }
         };
     }
 
-    /**
-     * Check if circuit is allowing requests
-     */
     isAvailable() {
         if (this.state === STATES.CLOSED) return true;
         if (this.state === STATES.OPEN) return this.shouldAttemptReset();
@@ -229,7 +193,7 @@ class CircuitBreaker extends EventEmitter {
     }
 }
 
-// Pre-configured circuit breakers for common services
+// Pre-configured circuit breakers
 const circuitBreakers = {
     email: new CircuitBreaker({
         name: 'email-service',

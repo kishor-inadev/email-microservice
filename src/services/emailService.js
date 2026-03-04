@@ -1,31 +1,64 @@
 const nodemailer = require('nodemailer');
-const path = require('path');
-const fs = require('fs').promises;
 const logger = require('../utils/logger');
 const { OAuth2Client } = require('google-auth-library');
 const { circuitBreakers } = require('../utils/circuitBreaker');
 const { metrics } = require('../utils/metrics');
 const { EmailDeliveryError, TemplateError, ServiceUnavailableError } = require('../utils/errors');
 
+// O(1) retryable SMTP code lookup
+const RETRYABLE_SMTP_CODES = new Set([421, 450, 451, 452]);
+
 class EmailService {
   constructor() {
     this.transporter = null;
     this.templateCache = new Map();
     this.circuitBreaker = circuitBreakers.email;
+    this._oauth2Client = null; // Cached OAuth2 client
     this.initializeTransporter();
+    this._preloadTemplates();
+  }
+
+  /** Pre-load ALL templates into cache at startup — zero I/O on hot path */
+  _preloadTemplates() {
+    try {
+      const templates = require('../templates/emailTemplate');
+      let count = 0;
+      for (const [name, fn] of Object.entries(templates)) {
+        if (typeof fn === 'function') {
+          this.templateCache.set(name, fn);
+          count++;
+        }
+      }
+      logger.info(`Pre-loaded ${count} email templates into cache`);
+    } catch (error) {
+      logger.error('Failed to pre-load templates', { error: error.message });
+    }
   }
 
   /** Validate ENV variables */
   validateEnvVariables(options = {}) {
     const requiredVars = ['EMAIL_USER', 'EMAIL_HOST', 'EMAIL_PORT'];
-
     if (options.service && !options.host && !options.port) return;
 
     const missingVars = requiredVars.filter(v => !process.env[v] && !options[v.toLowerCase()]);
-
     if (missingVars.length > 0) {
       throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
     }
+  }
+
+  /** Get or create OAuth2 client (cached singleton) */
+  _getOAuth2Client() {
+    if (!this._oauth2Client) {
+      this._oauth2Client = new OAuth2Client(
+        process.env.OAUTH2_CLIENT_ID,
+        process.env.OAUTH2_CLIENT_SECRET,
+        process.env.OAUTH2_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
+      );
+      this._oauth2Client.setCredentials({
+        refresh_token: process.env.OAUTH2_REFRESH_TOKEN
+      });
+    }
+    return this._oauth2Client;
   }
 
   /** Initialize transporter */
@@ -43,17 +76,16 @@ class EmailService {
       port: parseInt(options.port || process.env.EMAIL_PORT) || 587,
       secure: options.secure || process.env.EMAIL_SECURE === 'true' || false,
       pool: true,
-      maxConnections: parseInt(process.env.EMAIL_MAX_CONNECTIONS) || 20, // Increased for high throughput
-      maxMessages: parseInt(process.env.EMAIL_MAX_MESSAGES) || 500, // Increased for high throughput
+      maxConnections: parseInt(process.env.EMAIL_MAX_CONNECTIONS) || 20,
+      maxMessages: parseInt(process.env.EMAIL_MAX_MESSAGES) || 500,
       rateDelta: parseInt(process.env.EMAIL_RATE_DELTA) || 1000,
-      rateLimit: parseInt(process.env.EMAIL_RATE_LIMIT) || 50, // Max emails per rateDelta
+      rateLimit: parseInt(process.env.EMAIL_RATE_LIMIT) || 50,
       tls: {
         rejectUnauthorized: process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false',
         minVersion: process.env.EMAIL_TLS_MIN_VERSION || 'TLSv1.2'
       },
       logger: process.env.EMAIL_DEBUG === 'true' ? console : false,
       debug: process.env.EMAIL_DEBUG === 'true',
-      // Connection pool optimizations
       greetingTimeout: 10000,
       connectionTimeout: 10000,
       socketTimeout: 30000
@@ -74,18 +106,10 @@ class EmailService {
         refreshToken: process.env.OAUTH2_REFRESH_TOKEN
       };
 
+      // Reuse cached OAuth2 client instead of creating one per token refresh
       config.auth.accessToken = async () => {
-        const oauth2Client = new OAuth2Client(
-          process.env.OAUTH2_CLIENT_ID,
-          process.env.OAUTH2_CLIENT_SECRET,
-          process.env.OAUTH2_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
-        );
-
-        oauth2Client.setCredentials({
-          refresh_token: process.env.OAUTH2_REFRESH_TOKEN
-        });
-
-        const { token } = await oauth2Client.getAccessToken();
+        const client = this._getOAuth2Client();
+        const { token } = await client.getAccessToken();
         return token;
       };
     } else {
@@ -156,44 +180,26 @@ class EmailService {
     }
   }
 
-  /** Load template - optimized caching */
-  async loadTemplate(templateName) {
-    // Check cache first
-    if (this.templateCache.has(templateName)) {
-      return this.templateCache.get(templateName);
+  /** Load template — cache-first, no filesystem I/O on hot path */
+  loadTemplate(templateName) {
+    const cached = this.templateCache.get(templateName);
+    if (cached) return cached;
+
+    // Fallback: try to load dynamically (should never happen after pre-load)
+    const templates = require('../templates/emailTemplate');
+    const template = templates[templateName];
+
+    if (!template) {
+      throw new TemplateError(`Template not found: ${templateName}`, templateName);
     }
 
-    try {
-      const templateFile = 'src/templates/emailTemplate.js';
-      const templatePath = path.join(process.cwd(), templateFile);
-
-      await fs.access(templatePath);
-
-      // Only invalidate cache in development
-      if (process.env.NODE_ENV === 'development') {
-        delete require.cache[require.resolve(templatePath)];
-      }
-
-      const templates = require(templatePath);
-      const template = templates[templateName];
-
-      if (!template) {
-        throw new TemplateError(`Template not found: ${templateName}`, templateName);
-      }
-
-      this.templateCache.set(templateName, template);
-      return template;
-    } catch (error) {
-      if (error instanceof TemplateError) throw error;
-
-      logger.error('Template load failed', { templateName, error: error.message });
-      throw new TemplateError(`Failed to load template: ${templateName}`, templateName);
-    }
+    this.templateCache.set(templateName, template);
+    return template;
   }
 
-  /** Render template */
-  async renderTemplate(templateName, data) {
-    const template = await this.loadTemplate(templateName);
+  /** Render template — synchronous, no async overhead */
+  renderTemplate(templateName, data) {
+    const template = this.loadTemplate(templateName);
     const rendered = template(data);
 
     if (!rendered.subject || !rendered.html) {
@@ -222,7 +228,7 @@ class EmailService {
     try {
       // Execute through circuit breaker
       const result = await this.circuitBreaker.execute(async () => {
-        const { subject, html, text } = await this.renderTemplate(templateName, data);
+        const { subject, html, text } = this.renderTemplate(templateName, data);
 
         const mailOptions = {
           from: from || `${process.env.DEFAULT_FROM_NAME || 'Company'} <${process.env.DEFAULT_FROM_EMAIL}>`,
@@ -269,7 +275,7 @@ class EmailService {
         throw new EmailDeliveryError(
           `SMTP error: ${error.message}`,
           error.responseCode,
-          this.isRetryableSmtpError(error.responseCode)
+          RETRYABLE_SMTP_CODES.has(error.responseCode)
         );
       }
 
@@ -277,10 +283,9 @@ class EmailService {
     }
   }
 
-  /** Check if SMTP error is retryable */
+  /** Check if SMTP error is retryable — O(1) Set lookup */
   isRetryableSmtpError(code) {
-    const retryableCodes = [421, 450, 451, 452];
-    return retryableCodes.includes(code);
+    return RETRYABLE_SMTP_CODES.has(code);
   }
 
   /** Verify connection */
@@ -306,9 +311,13 @@ class EmailService {
   /** Utility */
   sanitizeEmailForLog(email) {
     if (!email) return '';
+    if (Array.isArray(email)) {
+      return email.map(e => this.sanitizeEmailForLog(e));
+    }
     if (typeof email === 'string') {
-      const [user, domain] = email.split('@');
-      return `${user.slice(0, 2)}***@${domain}`;
+      const atIdx = email.indexOf('@');
+      if (atIdx < 0) return email;
+      return `${email.slice(0, 2)}***${email.slice(atIdx)}`;
     }
     return email;
   }

@@ -13,13 +13,17 @@ if (ENABLE_KAFKA) {
   publishToKafka = require('../kafka/producer').publishToKafka;
 }
 
+// ─── Shared helper ──────────────────────────────────────────────────────────
+
 /**
- * Send email via Kafka queue (async)
+ * Validate, deduplicate, and persist an email request.
+ * Returns the validated payload with requestId and timestamp attached.
+ * If the request is a duplicate, sends a response and returns null.
  */
-async function sendEmail(req, res) {
+async function prepareEmailRequest(req, res) {
   const requestId = req.requestId;
 
-  // Validate request payload
+  // Validate
   const { error, value } = validator.validateEmailPayload(req.body);
   if (error) {
     logger.warn('Email validation failed', { requestId, error: error.details });
@@ -30,7 +34,7 @@ async function sendEmail(req, res) {
   emailPayload.requestId = requestId;
   emailPayload.timestamp = new Date().toISOString();
 
-  // Check idempotency
+  // Idempotency check
   if (emailPayload.idempotencyKey) {
     const isDuplicate = await idempotency.checkDuplicate(emailPayload.idempotencyKey);
     if (isDuplicate) {
@@ -38,138 +42,42 @@ async function sendEmail(req, res) {
         requestId,
         idempotencyKey: emailPayload.idempotencyKey
       });
-      return res.status(202).json({
+      res.status(202).json({
         success: true,
         message: 'Email already processed',
         idempotencyKey: emailPayload.idempotencyKey,
         requestId
       });
+      return null; // signal caller to stop
     }
-
     await idempotency.markAsProcessed(emailPayload.idempotencyKey);
   }
 
-  // Save to MongoDB
+  // Persist initial log
   if (mongoService.isConnected()) {
-    await mongoService.saveEmailLog({
-      ...emailPayload,
-      status: 'queued'
-    });
+    await mongoService.saveEmailLog({ ...emailPayload, status: 'queued' });
   }
 
-  // Send to Kafka if enabled, otherwise process directly
-  if (ENABLE_KAFKA) {
-    await publishToKafka(process.env.KAFKA_TOPIC_SEND || 'email.send', emailPayload);
-    metrics.recordEmailQueued({ template: emailPayload.templateId || emailPayload.template });
-
-    const templateName = emailPayload.templateId || emailPayload.template;
-    logger.info('Email queued to Kafka successfully', {
-      requestId,
-      to: emailPayload.to,
-      template: templateName
-    });
-
-    res.status(202).json({
-      success: true,
-      message: 'Email queued for processing',
-      requestId
-    });
-  } else {
-    // Process email directly without Kafka
-    const result = await emailService.sendEmail(emailPayload);
-
-    if (mongoService.isConnected()) {
-      await mongoService.updateEmailLog(requestId, {
-        status: 'sent',
-        messageId: result.messageId,
-        sentAt: new Date(),
-        metadata: {
-          accepted: result.accepted,
-          rejected: result.rejected
-        }
-      });
-    }
-
-    const templateName = emailPayload.templateId || emailPayload.template;
-    logger.info('Email sent successfully (HTTP mode)', {
-      requestId,
-      to: emailPayload.to,
-      template: templateName,
-      messageId: result.messageId
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Email sent successfully',
-      messageId: result.messageId,
-      requestId
-    });
-  }
+  return emailPayload;
 }
 
 /**
- * Send email synchronously (for testing)
+ * Update MongoDB after a successful send and log + respond.
  */
-async function sendEmailSync(req, res) {
-  const requestId = req.requestId;
+async function finalizeSentEmail(res, emailPayload, result, mode) {
+  const requestId = emailPayload.requestId;
+  const templateName = emailPayload.templateId || emailPayload.template;
 
-  // Validate request payload
-  const { error, value } = validator.validateEmailPayload(req.body);
-  if (error) {
-    logger.warn('Email validation failed', { requestId, error: error.details });
-    throw new ValidationError('Validation failed', error.details);
-  }
-
-  const emailPayload = value;
-  emailPayload.requestId = requestId;
-  emailPayload.timestamp = new Date().toISOString();
-
-  // Check idempotency
-  if (emailPayload.idempotencyKey) {
-    const isDuplicate = await idempotency.checkDuplicate(emailPayload.idempotencyKey);
-    if (isDuplicate) {
-      logger.info('Duplicate email request detected', {
-        requestId,
-        idempotencyKey: emailPayload.idempotencyKey
-      });
-      return res.status(200).json({
-        success: true,
-        message: 'Email already processed',
-        idempotencyKey: emailPayload.idempotencyKey,
-        requestId
-      });
-    }
-
-    await idempotency.markAsProcessed(emailPayload.idempotencyKey);
-  }
-
-  // Save to MongoDB
-  if (mongoService.isConnected()) {
-    await mongoService.saveEmailLog({
-      ...emailPayload,
-      status: 'queued'
-    });
-  }
-
-  // Send email directly
-  const result = await emailService.sendEmail(emailPayload);
-
-  // Update MongoDB with success
   if (mongoService.isConnected()) {
     await mongoService.updateEmailLog(requestId, {
       status: 'sent',
       messageId: result.messageId,
       sentAt: new Date(),
-      metadata: {
-        accepted: result.accepted,
-        rejected: result.rejected
-      }
+      metadata: { accepted: result.accepted, rejected: result.rejected }
     });
   }
 
-  const templateName = emailPayload.templateId || emailPayload.template;
-
-  logger.info('Email sent successfully (sync)', {
+  logger.info(`Email sent successfully (${mode})`, {
     requestId,
     to: emailPayload.to,
     template: templateName,
@@ -184,19 +92,59 @@ async function sendEmailSync(req, res) {
   });
 }
 
+// ─── Route handlers ─────────────────────────────────────────────────────────
+
+/**
+ * Send email via Kafka queue (async) or directly
+ */
+async function sendEmail(req, res) {
+  const emailPayload = await prepareEmailRequest(req, res);
+  if (!emailPayload) return; // duplicate — already responded
+
+  if (ENABLE_KAFKA) {
+    await publishToKafka(process.env.KAFKA_TOPIC_SEND || 'email.send', emailPayload);
+    const templateName = emailPayload.templateId || emailPayload.template;
+    metrics.recordEmailQueued({ template: templateName });
+
+    logger.info('Email queued to Kafka successfully', {
+      requestId: emailPayload.requestId,
+      to: emailPayload.to,
+      template: templateName
+    });
+
+    res.status(202).json({
+      success: true,
+      message: 'Email queued for processing',
+      requestId: emailPayload.requestId
+    });
+  } else {
+    const result = await emailService.sendEmail(emailPayload);
+    await finalizeSentEmail(res, emailPayload, result, 'HTTP mode');
+  }
+}
+
+/**
+ * Send email synchronously (for testing)
+ */
+async function sendEmailSync(req, res) {
+  const emailPayload = await prepareEmailRequest(req, res);
+  if (!emailPayload) return;
+
+  const result = await emailService.sendEmail(emailPayload);
+  await finalizeSentEmail(res, emailPayload, result, 'sync');
+}
+
 /**
  * Get service metrics
  */
 async function getMetrics(req, res) {
   const metricsData = metrics.getMetrics();
 
-  // Add circuit breaker status
   metricsData.circuitBreakers = {
     email: emailService.getCircuitBreakerStatus(),
     database: mongoService.getCircuitBreakerStatus()
   };
 
-  // Add database stats if connected
   if (mongoService.isConnected()) {
     try {
       metricsData.database = await mongoService.getEmailStats();
@@ -229,11 +177,7 @@ async function getEmailLogs(req, res) {
   };
 
   const result = await mongoService.getEmailLogs(filters, options);
-
-  res.status(200).json({
-    success: true,
-    ...result
-  });
+  res.status(200).json({ success: true, ...result });
 }
 
 /**
@@ -256,10 +200,7 @@ async function getEmailLog(req, res) {
     });
   }
 
-  res.status(200).json({
-    success: true,
-    data: log
-  });
+  res.status(200).json({ success: true, data: log });
 }
 
 module.exports = {

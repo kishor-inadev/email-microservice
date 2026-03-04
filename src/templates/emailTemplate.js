@@ -1,5 +1,8 @@
 const { appUrl, applicaionName } = require('../config/setting');
 const buildEmailHTML = (opts = {}) => {
+  // Support ctaButton as an alias for primaryCTA (backwards compat — many templates use ctaButton)
+  if (opts.ctaButton && !opts.primaryCTA) opts = { ...opts, primaryCTA: opts.ctaButton };
+
   // -------------------------
   // Defaults & helpers
   // -------------------------
@@ -246,11 +249,11 @@ const buildEmailHTML = (opts = {}) => {
     body,table,td,a{ -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
     table,td{ mso-table-lspace:0pt; mso-table-rspace:0pt; }
     img{ -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
-    body{ margin:0; padding:0; background:${esc(theme.bg)}; color:${esc(theme.text)}; font-family: Arial, Helvetica, sans-serif; }
+    body{ margin:0; padding:0; background:${esc(theme.bg)}; color:${esc(theme.text)}; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing:antialiased; }
     .email-wrap{ padding:28px 12px; }
     .card { max-width:720px; margin:0 auto; background:${esc(theme.cardBg)}; border-radius:${esc(theme.radius)}px; border:1px solid ${esc(theme.border)}; overflow:hidden; }
     .header { padding:12px 20px 6px 20px; text-align:left; }
-    .hero { padding:28px 36px; background: linear-gradient(180deg, ${esc(headerBg)} 0%, ${esc(headerBg)} 100%); color:#fff; text-align:left; }
+    .hero { padding:32px 40px; background: linear-gradient(135deg, ${esc(headerBg)} 0%, ${esc(headerBg)}dd 100%); color:#fff; text-align:left; }
     .hero h1 { margin:0; font-size:22px; font-weight:700; }
     .content { padding:28px 36px; color:${esc(theme.text)}; font-size:16px; line-height:24px; }
     .cta { margin-top:18px; text-align:left; }
@@ -336,7 +339,7 @@ const buildEmailHTML = (opts = {}) => {
 
                 ${review ? renderReview(review) : ''}
 
-                ${primaryCTA ? `<div class="cta"><a href="${primaryCTA.url}" style="color:"#fff"" class="btn-primary" ${a11y}>${esc(primaryCTA.text)}</a>${secondaryCTA ? `<a href="${secondaryCTA.url}" class="btn-secondary" ${a11y}>${esc(secondaryCTA.text)}</a>` : ''}</div>` : ''}
+                ${primaryCTA ? `<div class="cta"><a href="${primaryCTA.url}" style="color:#fff" class="btn-primary" ${a11y}>${esc(primaryCTA.text)}</a>${secondaryCTA ? `<a href="${secondaryCTA.url}" class="btn-secondary" ${a11y}>${esc(secondaryCTA.text)}</a>` : ''}</div>` : ''}
 
                 ${showDivider && (cards.length || invoice || security || review) ? `<hr class="divider"/>` : ''}
                 ${renderSocial(social)}
@@ -587,7 +590,7 @@ const USER_SUSPENDED = ({ userId, username, email, timestamp, reason }) => {
         </p>
       `,
       ctaButton: {
-        url: `${supportUrl || appUrl + '/support'}`,
+        url: `${appUrl + '/support'}`,
         text: 'Contact Support',
         color: '#dc2626'
       },
@@ -2778,31 +2781,37 @@ const ORG_COMPLIANCE_AUDIT_COMPLETED = ({
 /**
  * otpEmailTemplate - Your One-Time Password (OTP)
  */
-const otpEmailTemplate = ({ username, otp, expiryMinutes }) => {
+const otpEmailTemplate = ({ username, otp, expiryMinutes = 10 }) => {
   return {
-    subject: `Your One-Time Password (OTP)`,
+    subject: `Your One-Time Password: ${otp}`,
     html: buildEmailHTML({
-      preheader: `Your One-Time Password (OTP)`,
-      title: 'Your One-Time Password (OTP)',
+      preheader: `Your OTP is ${otp}. Valid for ${expiryMinutes} minutes. Do not share it.`,
+      title: 'Your One-Time Password',
       headerBg: '#7c3aed',
-      headerText: '🔐 Your One-Time Password (OTP)',
+      headerText: '🔐 Your Verification Code',
       bodyHTML: `
-        <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
-        </p>
-        <p style="margin:0 0 16px 0;color:#4b5563;">
-          Please use the verification code below to continue.
+        <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
+        <p style="margin:0 0 20px 0;color:#4b5563;">
+          Use the code below to complete your verification. It is valid for <strong>${expiryMinutes} minutes</strong>.
         </p>
 
-        <!-- Add dynamic content here based on parameters -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:28px 0;">
+          <tr><td align="center">
+            <div style="background:linear-gradient(135deg,#7c3aed,#4f46e5);display:inline-block;padding:20px 48px;border-radius:12px;letter-spacing:10px;font-size:38px;font-weight:800;color:#fff;font-family:'Courier New',monospace;">
+              ${otp}
+            </div>
+          </td></tr>
+        </table>
 
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:16px 0;padding:14px 18px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
+          <tr><td style="font-size:13px;color:#92400e;">
+            ⏰ This code expires in <strong>${expiryMinutes} minutes</strong>. Never share it with anyone.
+          </td></tr>
+        </table>
+
+        <p style="margin:20px 0 0 0;color:#9ca3af;font-size:13px;">If you didn't request this code, you can safely ignore this email.</p>
       `,
-      ctaButton: null,
-      footerNote: 'Never share this information with anyone.'
+      footerNote: 'We will never ask for your OTP. Keep it secret.'
     }),
     attachments: []
   };
@@ -2988,34 +2997,30 @@ const USER_EMAIL_VERIFIED = ({ username }) => {
  * passwordResetRequestTemplate - Reset Your Password
  */
 const passwordResetRequestTemplate = ({ resetToken, username }) => {
+  const resetUrl = `${appUrl}/auth/reset-password/${resetToken}`;
   return {
-    subject: `Reset Your Password`,
+    subject: 'Reset Your Password',
     html: buildEmailHTML({
-      preheader: `Reset Your Password`,
+      preheader: 'Click the secure link to reset your password. Expires in 1 hour.',
       title: 'Reset Your Password',
       headerBg: '#ef4444',
       headerText: '🔑 Reset Your Password',
       bodyHTML: `
-        <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+        <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          We received a request to reset your password. Click the button below to create a new password.
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We received a request to reset your password. Click below to proceed.
+          If you didn't request this, you can safely ignore this email &mdash; your password will not change.
         </p>
-
-        <!-- Add dynamic content here based on parameters -->
-
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:14px 18px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
+          <tr><td style="font-size:13px;color:#92400e;">
+            ⚠️ <strong>Security notice:</strong> This link expires in <strong>1 hour</strong>.
+          </td></tr>
+        </table>
       `,
-      ctaButton: {
-        url: `${appUrl}/action`,
-        text: 'Take Action',
-        color: '#ef4444'
-      },
-      footerNote: 'Never share this information with anyone.'
+      primaryCTA: { url: resetUrl, text: 'Reset Password', color: '#ef4444' },
+      footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
   };
@@ -3026,33 +3031,25 @@ const passwordResetRequestTemplate = ({ resetToken, username }) => {
  */
 const passwordResetSuccessTemplate = ({ username }) => {
   return {
-    subject: `Password Reset Successful`,
+    subject: 'Password Reset Successful',
     html: buildEmailHTML({
-      preheader: `Password Reset Successful`,
+      preheader: 'Your password has been successfully reset.',
       title: 'Password Reset Successful',
-      headerBg: '#ef4444',
-      headerText: '🔑 Password Reset Successful',
+      headerBg: '#10b981',
+      headerText: '✅ Password Reset Successful',
       bodyHTML: `
-        <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
-        </p>
+        <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We received a request to reset your password. Click below to proceed.
+          Your password has been reset successfully. You can now log in with your new password.
         </p>
-
-        <!-- Add dynamic content here based on parameters -->
-
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:14px 18px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
+          <tr><td style="font-size:13px;color:#92400e;">
+            <strong>If this wasn't you</strong> &mdash; please contact support immediately to secure your account.
+          </td></tr>
+        </table>
       `,
-      ctaButton: {
-        url: `${appUrl}/action`,
-        text: 'Take Action',
-        color: '#ef4444'
-      },
-      footerNote: 'Never share this information with anyone.'
+      primaryCTA: { url: `${appUrl}/login`, text: 'Log In Now', color: '#10b981' },
+      footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
   };
@@ -3063,29 +3060,26 @@ const passwordResetSuccessTemplate = ({ username }) => {
  */
 const passwordChangedSuccessTemplate = ({ username }) => {
   return {
-    subject: `Password Changed Successfully`,
+    subject: 'Your Password Was Changed',
     html: buildEmailHTML({
-      preheader: `Password Changed Successfully`,
-      title: 'Password Changed Successfully',
-      headerBg: '#ef4444',
-      headerText: '🔑 Password Changed Successfully',
+      preheader: 'Your account password was changed. If this was you, no action needed.',
+      title: 'Password Changed',
+      headerBg: '#10b981',
+      headerText: '🔒 Password Changed',
       bodyHTML: `
-        <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
-        </p>
+        <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+          Your account password was recently changed. If you made this change, no action is needed.
         </p>
-
-        <!-- Add dynamic content here based on parameters -->
-
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:14px 18px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
+          <tr><td style="font-size:13px;color:#92400e;">
+            <strong>Wasn't you?</strong> Contact support immediately &mdash; someone may have access to your account.
+          </td></tr>
+        </table>
+        <p style="margin:16px 0 0 0;color:#4b5563;">Your account security is our top priority.</p>
       `,
-      ctaButton: null,
-      footerNote: 'Never share this information with anyone.'
+      primaryCTA: { url: `${appUrl}/support`, text: 'Contact Support', color: '#6b7280' },
+      footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
   };
@@ -3096,29 +3090,30 @@ const passwordChangedSuccessTemplate = ({ username }) => {
  */
 const accountLockedTemplate = ({ username, unlockLink }) => {
   return {
-    subject: `Account Temporarily Locked`,
+    subject: 'Account Temporarily Locked',
     html: buildEmailHTML({
-      preheader: `Account Temporarily Locked`,
+      preheader: 'Your account has been temporarily locked due to multiple failed login attempts.',
       title: 'Account Temporarily Locked',
       headerBg: '#dc2626',
-      headerText: '🔐 Account Temporarily Locked',
+      headerText: '🔐 Account Locked',
       bodyHTML: `
-        <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
-        </p>
+        <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+          Your account has been <strong>temporarily locked</strong> due to multiple failed login attempts.
         </p>
-
-        <!-- Add dynamic content here based on parameters -->
-
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:14px 18px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:6px;">
+          <tr><td style="font-size:14px;color:#7f1d1d;">
+            For your security, access has been restricted. Please wait 30 minutes or use the unlock link below.
+          </td></tr>
+        </table>
+        <p style="margin:16px 0 0 0;color:#4b5563;">If this wasn't you, contact our support team immediately.</p>
       `,
-      ctaButton: null,
-      footerNote: null
+      primaryCTA: {
+        url: unlockLink || `${appUrl}/unlock-account`,
+        text: 'Unlock Account',
+        color: '#dc2626'
+      },
+      footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
   };
@@ -3129,29 +3124,36 @@ const accountLockedTemplate = ({ username, unlockLink }) => {
  */
 const suspiciousLoginTemplate = ({ username, location, device, resetLink }) => {
   return {
-    subject: `Suspicious Login Detected`,
+    subject: '⚠️ Suspicious Login Detected on Your Account',
     html: buildEmailHTML({
-      preheader: `Suspicious Login Detected`,
+      preheader: 'We detected a suspicious login attempt. If this was not you, act now.',
       title: 'Suspicious Login Detected',
       headerBg: '#dc2626',
       headerText: '⚠️ Suspicious Login Detected',
       bodyHTML: `
-        <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
-        </p>
+        <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+          We detected a login attempt on your account from an unusual location or device.
         </p>
-
-        <!-- Add dynamic content here based on parameters -->
-
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:22px;">
+            <strong style="color:#111827;">Login Details:</strong><br/>
+            ${location ? `<span style="color:#6b7280;">Location:</span> <strong style="color:#111827;">${location}</strong><br/>` : ''}
+            ${device ? `<span style="color:#6b7280;">Device:</span>   <strong style="color:#111827;">${device}</strong><br/>` : ''}
+          </td></tr>
+        </table>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:12px 0;padding:14px 18px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:6px;">
+          <tr><td style="font-size:13px;color:#7f1d1d;">
+            <strong>If this wasn't you</strong> &mdash; secure your account immediately by resetting your password.
+          </td></tr>
+        </table>
       `,
-      ctaButton: null,
-      footerNote: null
+      primaryCTA: {
+        url: resetLink || `${appUrl}/auth/reset-password`,
+        text: 'Secure My Account',
+        color: '#dc2626'
+      },
+      footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
   };
@@ -15335,7 +15337,283 @@ const INQUIRY_CONFIRMATION = ({ name, projectType, budget, timeline, companyName
 // 📤 MODULE EXPORTS
 // =====================================================================================
 
+// =====================================================================================
+// ✨ NEW MODERN TEMPLATES
+// =====================================================================================
+
+/** MAGIC_LINK — Passwordless one-click sign-in */
+const MAGIC_LINK = ({ username, magicUrl, expiryMinutes = 15 }) => ({
+  subject: 'Your Secure Sign-In Link',
+  html: buildEmailHTML({
+    preheader: `Click to sign in instantly. Expires in ${expiryMinutes} minutes.`,
+    title: 'Your Sign-In Link',
+    headerBg: '#2563eb',
+    headerText: '✨ One-Click Sign In',
+    bodyHTML: `
+      <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
+      <p style="margin:0 0 16px 0;color:#4b5563;">
+        Click below to sign in instantly — no password needed.
+        Valid for <strong>${expiryMinutes} minutes</strong>, single use only.
+      </p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:16px 0;padding:14px 18px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
+        <tr><td style="font-size:13px;color:#92400e;">⚠️ Never share this link — it grants immediate access to your account.</td></tr>
+      </table>
+      <p style="margin:20px 0 0 0;color:#9ca3af;font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
+    `,
+    primaryCTA: { url: magicUrl, text: 'Sign In Securely →', color: '#2563eb' },
+    footerNote: 'This sign-in link is single-use and expires automatically.'
+  }),
+  attachments: []
+});
+
+/** TRIAL_EXPIRING — Trial period ending soon */
+const TRIAL_EXPIRING = ({ username, daysLeft = 3, planName = 'Pro', upgradeUrl }) => ({
+  subject: `⏰ Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
+  html: buildEmailHTML({
+    preheader: `Your ${planName} trial is ending soon. Upgrade to keep your features.`,
+    title: 'Trial Ending Soon',
+    headerBg: '#f59e0b',
+    headerText: '⏰ Trial Ending Soon',
+    bodyHTML: `
+      <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
+      <p style="margin:0 0 16px 0;color:#4b5563;">
+        Your <strong>${planName}</strong> trial expires in <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong>. Upgrade now to keep all features.
+      </p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;">
+        <tr><td style="font-size:14px;line-height:24px;color:#92400e;">
+          <strong>🌟 What you keep with a paid plan:</strong><br/>
+          ✔ All premium features &amp; integrations<br/>
+          ✔ Priority support<br/>
+          ✔ No data loss — everything carries over
+        </td></tr>
+      </table>
+    `,
+    primaryCTA: {
+      url: upgradeUrl || `${appUrl}/billing/upgrade`,
+      text: 'Upgrade Now →',
+      color: '#f59e0b'
+    },
+    secondaryCTA: { url: `${appUrl}/pricing`, text: 'View Plans' },
+    footerNote: 'You can cancel anytime. No hidden fees.'
+  }),
+  attachments: []
+});
+
+/** DATA_EXPORT_READY — GDPR data export download ready */
+const DATA_EXPORT_READY = ({ username, downloadUrl, expiryHours = 24 }) => ({
+  subject: 'Your Data Export Is Ready to Download',
+  html: buildEmailHTML({
+    preheader: `Your account data export is ready. Download link expires in ${expiryHours}h.`,
+    title: 'Data Export Ready',
+    headerBg: '#0891b2',
+    headerText: '📦 Your Data Is Ready',
+    bodyHTML: `
+      <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
+      <p style="margin:0 0 16px 0;color:#4b5563;">Your data export has been processed and is ready to download.</p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:14px 18px;background:#ecfeff;border-left:4px solid #06b6d4;border-radius:6px;">
+        <tr><td style="font-size:13px;color:#155e75;">
+          ⏳ This link expires in <strong>${expiryHours} hours</strong>. Please download your data before it expires.
+        </td></tr>
+      </table>
+      <p style="margin:16px 0 0 0;color:#4b5563;font-size:14px;">The export includes your profile, activity, and all associated account data.</p>
+    `,
+    primaryCTA: {
+      url: downloadUrl || `${appUrl}/account/export`,
+      text: '⬇ Download My Data',
+      color: '#0891b2'
+    },
+    footerNote: 'Store your exported data securely. This link is single-use.'
+  }),
+  attachments: []
+});
+
+/** BIRTHDAY_GREETING — Birthday celebration with special discount */
+const BIRTHDAY_GREETING = ({ username, discountCode, discountPercent = 20, offerUrl }) => ({
+  subject: `🎂 Happy Birthday, ${username || 'there'}! A gift from us`,
+  html: buildEmailHTML({
+    preheader: `Happy birthday! Enjoy ${discountPercent}% off as our gift to you.`,
+    title: 'Happy Birthday!',
+    headerBg: '#ec4899',
+    headerText: '🎂 Happy Birthday!',
+    bodyHTML: `
+      <p style="margin:0 0 16px 0;">Hello <strong>${username || 'there'}</strong>, 🎉</p>
+      <p style="margin:0 0 20px 0;color:#4b5563;">From all of us — happy birthday! Here's a little gift to celebrate.</p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:28px 0;">
+        <tr><td align="center">
+          <div style="display:inline-block;background:linear-gradient(135deg,#ec4899,#a855f7);padding:24px 56px;border-radius:16px;text-align:center;">
+            <div style="color:rgba(255,255,255,0.85);font-size:12px;margin-bottom:4px;letter-spacing:2px;text-transform:uppercase;">Your Birthday Gift</div>
+            <div style="color:#fff;font-size:52px;font-weight:800;line-height:1;">${discountPercent}%</div>
+            <div style="color:rgba(255,255,255,0.85);font-size:12px;margin-top:4px;text-transform:uppercase;">Off Your Next Order</div>
+            ${discountCode ? `<div style="color:#fff;font-size:16px;font-weight:700;font-family:monospace;margin-top:14px;background:rgba(255,255,255,0.2);padding:8px 20px;border-radius:8px;letter-spacing:4px;">${discountCode}</div>` : ''}
+          </div>
+        </td></tr>
+      </table>
+      <p style="margin:0;color:#9ca3af;font-size:13px;text-align:center;">Valid for 7 days. Single use only.</p>
+    `,
+    primaryCTA: {
+      url: offerUrl || `${appUrl}/shop`,
+      text: '🎁 Claim My Birthday Gift',
+      color: '#ec4899'
+    },
+    footerNote: 'Valid 7 days from your birthday. Cannot be combined with other offers.'
+  }),
+  attachments: []
+});
+
+/** TEAM_INVITE — General team/workspace invitation */
+const TEAM_INVITE = ({
+  inviteeEmail,
+  inviteeName,
+  invitedBy,
+  teamName,
+  role,
+  inviteUrl,
+  expiresAt
+}) => ({
+  subject: `${invitedBy} invited you to join ${teamName}`,
+  html: buildEmailHTML({
+    preheader: `You've been invited to join ${teamName} as ${role || 'a member'}.`,
+    title: `Join ${teamName}`,
+    headerBg: '#10b981',
+    headerText: '🤝 You Have an Invitation',
+    bodyHTML: `
+      <p style="margin:0 0 16px 0;">Hello <strong>${inviteeName || inviteeEmail}</strong>,</p>
+      <p style="margin:0 0 16px 0;color:#4b5563;">
+        <strong>${invitedBy}</strong> has invited you to join <strong>${teamName}</strong>.
+      </p>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+        <tr><td style="font-size:14px;line-height:24px;">
+          <span style="color:#6b7280;">Team:</span> <strong style="color:#111827;">${teamName}</strong><br/>
+          <span style="color:#6b7280;">Role:</span> <strong style="color:#10b981;">${role || 'Member'}</strong><br/>
+          <span style="color:#6b7280;">Invited By:</span> <strong style="color:#111827;">${invitedBy}</strong><br/>
+          ${expiresAt ? `<span style="color:#6b7280;">Expires:</span> <strong style="color:#dc2626;">${new Date(expiresAt).toLocaleString()}</strong>` : ''}
+        </td></tr>
+      </table>
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:16px 0;padding:14px 18px;background:#d1fae5;border-left:4px solid #10b981;border-radius:6px;">
+        <tr><td style="font-size:13px;color:#065f46;">✔ Click <strong>Accept Invitation</strong> to join and start collaborating.</td></tr>
+      </table>
+    `,
+    primaryCTA: {
+      url: inviteUrl || `${appUrl}/invite/accept`,
+      text: 'Accept Invitation →',
+      color: '#10b981'
+    },
+    footerNote: 'This invitation is unique to you. Do not share this link.'
+  }),
+  attachments: []
+});
+// -----------------------------------------------------------------------------
+// Project proposal email with attachment and download button
+// -----------------------------------------------------------------------------
+const PROJECT_PROPOSAL_EMAIL = ({
+  clientName,
+  projectName,
+  proposalUrl,
+  proposalNumber,
+  issueDate,
+  validUntil,
+  companyName = 'Your Company',
+  contactEmail = 'support@yourcompany.com',
+  contactPhone = '',
+  attachmentName = 'proposal.pdf',
+  message = '',
+  baseUrl = appUrl
+}) => {
+  const downloadLink = proposalUrl || '#';
+
+  return {
+    subject: `📄 Proposal #${proposalNumber || ''} for ${projectName}`,
+    html: buildEmailHTML({
+      preheader: `Your project proposal for ${projectName} is ready`,
+      title: 'Project Proposal',
+      headerBg: '#2563eb',
+      headerText: 'Proposal Ready',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${clientName || 'Valued Client'}</strong>,
+        </p>
+
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Thank you for the opportunity to collaborate with us on 
+          <strong>${projectName}</strong>. We have prepared a detailed proposal 
+          outlining the scope, timeline, and estimated investment for this project.
+        </p>
+
+        <div style="background:#f9fafb;padding:16px;border-radius:8px;margin:20px 0;">
+          <p style="margin:4px 0;"><strong>Proposal Number:</strong> ${proposalNumber || 'N/A'}</p>
+          <p style="margin:4px 0;"><strong>Project:</strong> ${projectName}</p>
+          <p style="margin:4px 0;"><strong>Issue Date:</strong> ${issueDate || 'N/A'}</p>
+          <p style="margin:4px 0;"><strong>Valid Until:</strong> ${validUntil || 'N/A'}</p>
+        </div>
+
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          ${
+            message ||
+            'Please review the attached proposal document which includes project deliverables, timeline, and pricing structure.'
+          }
+        </p>
+
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${downloadLink}"
+             style="display:inline-block;padding:14px 26px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;"
+             target="_blank" rel="noopener">
+            Download Full Proposal
+          </a>
+        </div>
+
+        <p style="margin:16px 0;color:#4b5563;">
+          If you have any questions or would like to discuss adjustments to the scope or timeline, 
+          please feel free to reach out. We would also be happy to schedule a call to walk you through the proposal.
+        </p>
+
+        <p style="margin:16px 0;color:#4b5563;">
+          <strong>Next Steps:</strong>
+        </p>
+
+        <ul style="color:#4b5563;padding-left:20px;">
+          <li>Review the attached proposal document</li>
+          <li>Share your feedback or requested modifications</li>
+          <li>Confirm approval so we can initiate the project kickoff</li>
+        </ul>
+
+        <p style="margin:20px 0;color:#4b5563;">
+          You may also access the proposal using the link below:
+        </p>
+
+        <p style="word-break:break-all;">
+          <a href="${downloadLink}" style="color:#2563eb;text-decoration:none;">
+            ${downloadLink}
+          </a>
+        </p>
+
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          We appreciate your time and look forward to the possibility of working together.
+        </p>
+
+        <p style="margin:20px 0 0 0;color:#4b5563;">
+          Best regards,<br/>
+          <strong>${companyName}</strong><br/>
+          ${contactEmail ? `Email: ${contactEmail}<br/>` : ''}
+          ${contactPhone ? `Phone: ${contactPhone}` : ''}
+        </p>
+      `,
+      footerNote: `Proposal ${proposalNumber || ''} • ${projectName}`
+    }),
+    attachments: [
+      {
+        filename: attachmentName,
+        path: downloadLink
+      }
+    ]
+  };
+};
 module.exports = {
+  // New modern templates
+  MAGIC_LINK,
+  TRIAL_EXPIRING,
+  DATA_EXPORT_READY,
+  BIRTHDAY_GREETING,
+  TEAM_INVITE,
   otpEmailTemplate,
   INQUIRY_NOTIFICATION,
   CONTACT_CONFIRMATION,
@@ -15696,5 +15974,6 @@ module.exports = {
   highRiskAccountActivityAlertAdminTemplate,
   accountRecoveryRequestReceivedAdminTemplate,
   twoFactorCompletedTemplate,
-  NEWSLETTER_WELCOME
+  NEWSLETTER_WELCOME,
+  PROJECT_PROPOSAL_EMAIL
 };

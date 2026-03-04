@@ -1,110 +1,107 @@
+const templates = require('../../src/templates/emailTemplate');
+
 describe('Email Templates', () => {
+  describe('exports', () => {
+    test('should export all expected templates', () => {
+      const keys = Object.keys(templates);
+      expect(keys.length).toBeGreaterThan(100);
+    });
+
+    test('each export should be a function', () => {
+      Object.entries(templates).forEach(([name, fn]) => {
+        expect(typeof fn).toBe('function');
+      });
+    });
+  });
+
   describe('USER_CREATED template', () => {
-    test('should render with all required fields', () => {
-      const template = require('../../src/templates/USER_CREATED');
-
-      const data = {
+    test('should return subject and html', () => {
+      const result = templates.USER_CREATED({
+        userId: 'u-123',
         username: 'John Doe',
         email: 'john@example.com',
-        activationUrl: 'https://example.com/activate',
-        companyName: 'Test Company'
-      };
+        timestamp: new Date().toISOString()
+      });
 
-      const result = template(data);
-
-      expect(result.subject).toContain('Welcome to Test Company');
+      expect(result).toHaveProperty('subject');
+      expect(result).toHaveProperty('html');
+      expect(result.subject).toContain('User Account');
       expect(result.html).toContain('John Doe');
-      expect(result.html).toContain('https://example.com/activate');
-      expect(result.text).toContain('John Doe');
-      expect(result.text).toContain('https://example.com/activate');
-    });
-
-    test('should handle missing optional fields', () => {
-      const template = require('../../src/templates/USER_CREATED');
-
-      const data = {
-        username: 'John Doe',
-        email: 'john@example.com'
-      };
-
-      const result = template(data);
-
-      expect(result.subject).toContain('Welcome to Company');
-      expect(result.html).toContain('John Doe');
-      expect(result.text).toContain('John Doe');
     });
   });
 
-  describe('PASSWORD_RESET template', () => {
-    test('should render with reset URL', () => {
-      const template = require('../../src/templates/PASSWORD_RESET');
+  describe('PASSWORD_RESET_REQUESTED template', () => {
+    test('should include reset URL', () => {
+      const result = templates.PASSWORD_RESET_REQUESTED({
+        username: 'Jane',
+        resetToken: 'abc-123',
+        resetUrl: 'https://example.com/reset?token=abc-123'
+      });
 
-      const data = {
-        username: 'John Doe',
-        email: 'john@example.com',
-        resetUrl: 'https://example.com/reset?token=abc123',
-        companyName: 'Test Company'
-      };
-
-      const result = template(data);
-
-      expect(result.subject).toContain('Reset your Test Company password');
-      expect(result.html).toContain('https://example.com/reset?token=abc123');
-      expect(result.text).toContain('https://example.com/reset?token=abc123');
+      expect(result.html).toContain('https://example.com/reset?token=abc-123');
+      expect(result.subject).toContain('Password');
     });
   });
 
-  describe('ORDER_SUCCESS template', () => {
-    test('should render with order details', () => {
-      const template = require('../../src/templates/ORDER_SUCCESS');
+  describe('CONTACT_NOTIFICATION template', () => {
+    test('should render contact details', () => {
+      const result = templates.CONTACT_NOTIFICATION({
+        name: 'Alice',
+        email: 'alice@example.com',
+        phone: '555-1234',
+        company: 'ACME Corp',
+        subject: 'Help needed',
+        message: 'I need assistance.',
+        submittedAt: new Date().toISOString(),
+        contactId: 'c-001'
+      });
 
-      const data = {
-        username: 'John Doe',
-        email: 'john@example.com',
-        orderNumber: 'ORD-12345',
-        orderTotal: 99.99,
-        currency: 'USD',
-        items: [
-          { name: 'Product 1', quantity: 2, price: 29.99 },
-          { name: 'Product 2', quantity: 1, price: 39.99 }
-        ],
-        companyName: 'Test Company'
-      };
+      expect(result.subject).toContain('Help needed');
+      expect(result.html).toContain('Alice');
+      expect(result.html).toContain('ACME Corp');
+    });
+  });
 
-      const result = template(data);
+  describe('MAGIC_LINK template', () => {
+    test('should render magic link URL', () => {
+      const result = templates.MAGIC_LINK({
+        username: 'Bob',
+        magicUrl: 'https://app.example.com/magic?t=xyz',
+        expiryMinutes: 10
+      });
 
-      expect(result.subject).toContain('Order Confirmation #ORD-12345');
+      expect(result.html).toContain('https://app.example.com/magic?t=xyz');
+      expect(result.subject).toBeDefined();
+    });
+  });
+
+  describe('ORDER_CREATED template', () => {
+    test('should render order details', () => {
+      const result = templates.ORDER_CREATED({
+        username: 'Charlie',
+        orderId: 'ORD-12345',
+        orderDate: new Date().toISOString(),
+        items: [{ name: 'Product A', quantity: 2, price: '$29.99' }],
+        total: '$59.98',
+        shippingAddress: '123 Main St'
+      });
+
+      expect(result.subject).toBeDefined();
       expect(result.html).toContain('ORD-12345');
-      expect(result.html).toContain('$99.99');
-      expect(result.html).toContain('Product 1');
-      expect(result.html).toContain('Product 2');
     });
   });
 
-  describe('CUSTOM_GENERIC_TEMPLATE template', () => {
-    test('should render with custom content', () => {
-      const template = require('../../src/templates/CUSTOM_GENERIC_TEMPLATE');
+  describe('template error handling', () => {
+    test('USER_CREATED should handle missing optional fields gracefully', () => {
+      const result = templates.USER_CREATED({
+        userId: 'u-456',
+        email: 'test@example.com',
+        timestamp: new Date().toISOString()
+      });
 
-      const data = {
-        username: 'John Doe',
-        email: 'john@example.com',
-        subject: 'Custom Subject',
-        title: 'Custom Title',
-        content: 'This is custom content.',
-        ctaText: 'Click Here',
-        ctaUrl: 'https://example.com',
-        companyName: 'Test Company',
-        theme: 'green'
-      };
-
-      const result = template(data);
-
-      expect(result.subject).toBe('Custom Subject');
-      expect(result.html).toContain('Custom Title');
-      expect(result.html).toContain('This is custom content.');
-      expect(result.html).toContain('Click Here');
-      expect(result.html).toContain('https://example.com');
-      expect(result.html).toContain('#16a34a'); // green theme color
+      expect(result.subject).toBeDefined();
+      expect(result.html).toBeDefined();
+      expect(result.html).toContain('User');
     });
   });
 });

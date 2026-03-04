@@ -65,7 +65,7 @@ async function startWorker() {
   const api = require('./src/api/app');
   const emailService = require('./src/services/emailService');
   const mongoService = require('./src/services/mongoService');
-  const connectDB = require('./src/config/dbConnact');
+  const connectDB = require('./src/config/dbConnect');
   const { setupProcessErrorHandlers } = require('./src/middlewares/errorHandler');
 
   const PORT = process.env.PORT || 3000;

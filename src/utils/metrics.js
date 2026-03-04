@@ -1,35 +1,49 @@
 /**
  * Metrics Collection Utility
- * Centralized metrics collection for monitoring and observability
+ * Optimized for minimal hot-path overhead
  */
 
 const logger = require('./logger');
 
 /**
- * Simple histogram for tracking value distributions
+ * Ring-buffer Histogram — O(1) observe, O(n) getStats (on demand only)
  */
 class Histogram {
     constructor(name, buckets = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]) {
         this.name = name;
         this.buckets = buckets.sort((a, b) => a - b);
-        this.values = [];
         this.bucketCounts = new Map(buckets.map(b => [b, 0]));
         this.bucketCounts.set('+Inf', 0);
+
+        // Ring buffer instead of shift()-based array — O(1) insert
+        this._capacity = 1000;
+        this._buffer = new Float64Array(this._capacity);
+        this._writeIdx = 0;
+        this._filled = false;
+
         this.sum = 0;
         this.count = 0;
+        this._min = Infinity;
+        this._max = -Infinity;
     }
 
     observe(value) {
-        this.values.push(value);
+        // Ring buffer write — O(1)
+        this._buffer[this._writeIdx] = value;
+        this._writeIdx++;
+        if (this._writeIdx >= this._capacity) {
+            this._writeIdx = 0;
+            this._filled = true;
+        }
+
         this.sum += value;
         this.count++;
 
-        // Keep only last 1000 values for percentile calculation
-        if (this.values.length > 1000) {
-            this.values.shift();
-        }
+        // Incremental min/max — avoids Math.min/max spread on 1000 values
+        if (value < this._min) this._min = value;
+        if (value > this._max) this._max = value;
 
-        // Update bucket counts
+        // Update bucket counts — cumulative
         let bucketFound = false;
         for (const bucket of this.buckets) {
             if (value <= bucket && !bucketFound) {
@@ -40,9 +54,17 @@ class Histogram {
         this.bucketCounts.set('+Inf', this.bucketCounts.get('+Inf') + 1);
     }
 
+    /** Get live values from ring buffer */
+    _getValues() {
+        const len = this._filled ? this._capacity : this._writeIdx;
+        return this._buffer.subarray(0, len);
+    }
+
     getPercentile(p) {
-        if (this.values.length === 0) return 0;
-        const sorted = [...this.values].sort((a, b) => a - b);
+        const vals = this._getValues();
+        if (vals.length === 0) return 0;
+        // Sort a copy (only when stats are requested, not per-observe)
+        const sorted = Array.from(vals).sort((a, b) => a - b);
         const index = Math.ceil((p / 100) * sorted.length) - 1;
         return sorted[Math.max(0, index)];
     }
@@ -52,8 +74,8 @@ class Histogram {
             count: this.count,
             sum: this.sum,
             avg: this.count > 0 ? this.sum / this.count : 0,
-            min: this.values.length > 0 ? Math.min(...this.values) : 0,
-            max: this.values.length > 0 ? Math.max(...this.values) : 0,
+            min: this.count > 0 ? this._min : 0,
+            max: this.count > 0 ? this._max : 0,
             p50: this.getPercentile(50),
             p90: this.getPercentile(90),
             p99: this.getPercentile(99)
@@ -62,7 +84,7 @@ class Histogram {
 }
 
 /**
- * Simple counter for tracking occurrences
+ * Counter with fast label key generation
  */
 class Counter {
     constructor(name) {
@@ -74,11 +96,23 @@ class Counter {
     inc(labels = {}, value = 1) {
         this.value += value;
 
-        const labelKey = JSON.stringify(labels);
-        if (!this.labels.has(labelKey)) {
-            this.labels.set(labelKey, { labels, value: 0 });
+        // Fast label key — avoid JSON.stringify for single/empty labels
+        const keys = Object.keys(labels);
+        let labelKey;
+        if (keys.length === 0) {
+            labelKey = '{}';
+        } else if (keys.length === 1) {
+            labelKey = `${keys[0]}=${labels[keys[0]]}`;
+        } else {
+            labelKey = keys.sort().map(k => `${k}=${labels[k]}`).join(',');
         }
-        this.labels.get(labelKey).value += value;
+
+        const entry = this.labels.get(labelKey);
+        if (entry) {
+            entry.value += value;
+        } else {
+            this.labels.set(labelKey, { labels, value });
+        }
     }
 
     get() {
@@ -161,78 +195,52 @@ class MetricsService {
         this.circuitBreakerState = new Map();
     }
 
-    /**
-     * Record an email send
-     */
     recordEmailSent(durationMs, labels = {}) {
         this.emailsSent.inc({ status: 'success', ...labels });
         this.emailLatency.observe(durationMs);
     }
 
-    /**
-     * Record an email failure
-     */
     recordEmailFailed(labels = {}) {
         this.emailsFailed.inc(labels);
         this.emailsSent.inc({ status: 'failed', ...labels });
     }
 
-    /**
-     * Record an email queued
-     */
     recordEmailQueued(labels = {}) {
         this.emailsQueued.inc(labels);
     }
 
-    /**
-     * Record an email retry
-     */
     recordEmailRetried(labels = {}) {
         this.emailsRetried.inc(labels);
     }
 
-    /**
-     * Record HTTP request
-     */
     recordHttpRequest(method, path, statusCode, durationMs) {
         this.httpRequests.inc({ method, path, status: statusCode });
         this.httpLatency.observe(durationMs);
     }
 
-    /**
-     * Record an error
-     */
     recordError(errorType, labels = {}) {
         this.errors.inc({ type: errorType, ...labels });
     }
 
-    /**
-     * Record database operation
-     */
     recordDbOperation(operation, durationMs, success = true) {
         this.dbOperations.inc({ operation, status: success ? 'success' : 'failed' });
         this.dbLatency.observe(durationMs);
     }
 
-    /**
-     * Update circuit breaker state
-     */
     updateCircuitBreakerState(name, state) {
         this.circuitBreakerState.set(name, {
             state,
-            updatedAt: new Date().toISOString()
+            updatedAt: Date.now()
         });
     }
 
-    /**
-     * Get all metrics in a structured format
-     */
     getMetrics() {
+        const now = Date.now();
         return {
             uptime: {
                 startTime: new Date(this.startTime).toISOString(),
-                uptimeMs: Date.now() - this.startTime,
-                uptimeSeconds: Math.floor((Date.now() - this.startTime) / 1000)
+                uptimeMs: now - this.startTime,
+                uptimeSeconds: Math.floor((now - this.startTime) / 1000)
             },
             email: {
                 sent: this.emailsSent.getWithLabels(),
@@ -269,14 +277,10 @@ class MetricsService {
         };
     }
 
-    /**
-     * Get metrics in Prometheus format
-     */
     getPrometheusMetrics() {
         const lines = [];
         const now = Date.now();
 
-        // Email metrics
         lines.push(`# HELP emails_sent_total Total number of emails sent`);
         lines.push(`# TYPE emails_sent_total counter`);
         lines.push(`emails_sent_total ${this.emailsSent.get()}`);
@@ -289,7 +293,6 @@ class MetricsService {
         lines.push(`# TYPE emails_queued_total counter`);
         lines.push(`emails_queued_total ${this.emailsQueued.get()}`);
 
-        // Latency metrics
         const latencyStats = this.emailLatency.getStats();
         lines.push(`# HELP email_send_duration_ms Email send duration in milliseconds`);
         lines.push(`# TYPE email_send_duration_ms summary`);
@@ -299,12 +302,10 @@ class MetricsService {
         lines.push(`email_send_duration_ms{quantile="0.9"} ${latencyStats.p90}`);
         lines.push(`email_send_duration_ms{quantile="0.99"} ${latencyStats.p99}`);
 
-        // HTTP metrics
         lines.push(`# HELP http_requests_total Total number of HTTP requests`);
         lines.push(`# TYPE http_requests_total counter`);
         lines.push(`http_requests_total ${this.httpRequests.get()}`);
 
-        // Process metrics
         const mem = process.memoryUsage();
         lines.push(`# HELP process_memory_bytes Process memory in bytes`);
         lines.push(`# TYPE process_memory_bytes gauge`);
@@ -319,9 +320,6 @@ class MetricsService {
         return lines.join('\n');
     }
 
-    /**
-     * Reset all metrics (for testing)
-     */
     reset() {
         this.emailsSent = new Counter('emails_sent_total');
         this.emailsFailed = new Counter('emails_failed_total');
