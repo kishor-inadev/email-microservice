@@ -3,8 +3,10 @@
  * When disabled, uses no-op functions for zero overhead
  */
 
-const ENABLE_LOGGING = process.env.ENABLE_LOGGING !== 'false';
-const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+const env = require('../config/env');
+
+const ENABLE_LOGGING = env.ENABLE_LOGGING;
+const LOG_LEVEL = env.LOG_LEVEL;
 
 // No-op logger for maximum performance when logging is disabled
 const noopLogger = {
@@ -35,7 +37,7 @@ function createLogger() {
   const fs = require('fs');
   const path = require('path');
 
-  const enableFileLogs = process.env.ENABLE_FILE_LOGS === 'true';
+  const enableFileLogs = env.ENABLE_FILE_LOGS;
 
   // Minimal format for production (faster JSON serialization)
   const productionFormat = winston.format.combine(
@@ -54,7 +56,7 @@ function createLogger() {
     })
   );
 
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = env.isProduction();
 
   // Create logger with minimal overhead
   const logger = winston.createLogger({
@@ -67,7 +69,7 @@ function createLogger() {
     transports: [
       new winston.transports.Console({
         // Disable console in production if only file logging is needed
-        silent: process.env.DISABLE_CONSOLE_LOG === 'true'
+        silent: env.DISABLE_CONSOLE_LOG
       })
     ],
     // Disable exception/rejection handling by default for performance
@@ -103,7 +105,7 @@ function createLogger() {
   }
 
   // Silent mode for tests
-  if (process.env.NODE_ENV === 'test') {
+  if (env.isTest()) {
     logger.transports.forEach(t => (t.silent = true));
   }
 

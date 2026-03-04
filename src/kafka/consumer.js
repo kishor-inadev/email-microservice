@@ -6,6 +6,7 @@ const validator = require('../utils/validator');
 const mongoService = require('../services/mongoService');
 const { circuitBreakers } = require('../utils/circuitBreaker');
 const { metrics } = require('../utils/metrics');
+const env = require('../config/env');
 
 // O(1) retryable error code lookup
 const RETRYABLE_ERROR_CODES = new Set([
@@ -16,8 +17,8 @@ const RETRYABLE_SMTP_CODES = new Set([421, 450, 451, 452]);
 class KafkaConsumer {
   constructor() {
     this.kafka = new Kafka({
-      clientId: process.env.KAFKA_CLIENT_ID || 'email-microservice',
-      brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
+      clientId: env.KAFKA_CLIENT_ID,
+      brokers: env.KAFKA_BROKERS.split(','),
       retry: {
         initialRetryTime: 300,
         retries: 10
@@ -25,7 +26,7 @@ class KafkaConsumer {
     });
 
     this.consumer = this.kafka.consumer({
-      groupId: process.env.KAFKA_GROUP_ID || 'email-service-group',
+      groupId: env.KAFKA_GROUP_ID,
       sessionTimeout: 30000,
       heartbeatInterval: 3000,
       maxBytesPerPartition: 1048576,
@@ -33,8 +34,8 @@ class KafkaConsumer {
     });
 
     this.circuitBreaker = circuitBreakers.kafka;
-    this.retryLimit = parseInt(process.env.EMAIL_RETRY_LIMIT) || 3;
-    this.retryBackoff = parseInt(process.env.EMAIL_RETRY_BACKOFF_MS) || 5000;
+    this.retryLimit = env.EMAIL_RETRY_LIMIT;
+    this.retryBackoff = env.EMAIL_RETRY_BACKOFF_MS;
     this.isRunning = false;
   }
 
@@ -44,12 +45,12 @@ class KafkaConsumer {
       logger.info('Kafka consumer connected');
 
       await this.consumer.subscribe({
-        topic: process.env.KAFKA_TOPIC_SEND || 'email.send',
+        topic: env.KAFKA_TOPIC_SEND,
         fromBeginning: false
       });
 
       await this.consumer.run({
-        partitionsConsumedConcurrently: parseInt(process.env.KAFKA_CONCURRENT_PARTITIONS) || 3,
+        partitionsConsumedConcurrently: env.KAFKA_CONCURRENT_PARTITIONS,
         eachMessage: async ({ topic, partition, message, heartbeat }) => {
           await this.processMessage({ topic, partition, message, heartbeat });
         }

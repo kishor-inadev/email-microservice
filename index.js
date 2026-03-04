@@ -1,12 +1,9 @@
-const dotenv = require('dotenv');
+const env = require('./src/config/env');
 const cluster = require('cluster');
 const os = require('os');
 
-// Load environment variables
-dotenv.config();
-
-const numCPUs = parseInt(process.env.CLUSTER_WORKERS) || os.cpus().length;
-const ENABLE_CLUSTER = process.env.ENABLE_CLUSTER !== 'false' && numCPUs > 1;
+const numCPUs = env.CLUSTER_WORKERS || os.cpus().length;
+const ENABLE_CLUSTER = env.ENABLE_CLUSTER && numCPUs > 1;
 
 if (ENABLE_CLUSTER && cluster.isPrimary) {
   // Master process - fork workers
@@ -68,8 +65,8 @@ async function startWorker() {
   const connectDB = require('./src/config/dbConnect');
   const { setupProcessErrorHandlers } = require('./src/middlewares/errorHandler');
 
-  const PORT = process.env.PORT || 3000;
-  const ENABLE_KAFKA = process.env.ENABLE_KAFKA === 'true';
+  const PORT = env.PORT;
+  const ENABLE_KAFKA = env.ENABLE_KAFKA;
 
   // Setup process-level error handlers
   setupProcessErrorHandlers();
@@ -98,7 +95,7 @@ async function startWorker() {
 
       logger.info(`Email microservice running on port ${PORT}`, {
         port: PORT,
-        environment: process.env.NODE_ENV,
+        environment: env.NODE_ENV,
         processId: process.pid,
         workerId: cluster.worker?.id || 'single',
         kafkaEnabled: ENABLE_KAFKA,
@@ -109,7 +106,7 @@ async function startWorker() {
     // Configure server timeouts
     server.keepAliveTimeout = 65000; // Higher than ALB/nginx default (60s)
     server.headersTimeout = 66000; // Slightly higher than keepAliveTimeout
-    server.timeout = parseInt(process.env.SERVER_TIMEOUT_MS) || 120000;
+    server.timeout = env.SERVER_TIMEOUT_MS;
 
     // Track active connections for graceful shutdown
     let connections = new Set();
@@ -160,7 +157,7 @@ async function startWorker() {
       });
 
       // Force close connections after timeout
-      const shutdownTimeout = parseInt(process.env.SHUTDOWN_TIMEOUT_MS) || 10000;
+      const shutdownTimeout = env.SHUTDOWN_TIMEOUT_MS;
 
       setTimeout(() => {
         logger.warn('Forcing remaining connections to close');

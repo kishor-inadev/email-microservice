@@ -1,10 +1,10 @@
-require('dotenv').config();
+const env = require('./env');
 
-// App config — only variables actually used by the service
-const dbUrl = process.env.MONGO_URL;
-const environment = process.env.NODE_ENV || 'development';
-const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'localhost:3000';
-const applicationName = process.env.APPLICATION_NAME || 'Your Company';
+// App config — re-exported from centralized env.js for backward compatibility
+const dbUrl = env.MONGO_URL;
+const environment = env.NODE_ENV;
+const appUrl = env.APP_URL;
+const applicationName = env.APPLICATION_NAME;
 
 module.exports = {
   dbUrl,

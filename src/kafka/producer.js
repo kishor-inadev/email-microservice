@@ -1,11 +1,12 @@
 const { Kafka } = require('kafkajs');
 const logger = require('../utils/logger');
+const env = require('../config/env');
 
 class KafkaProducer {
   constructor() {
     this.kafka = new Kafka({
-      clientId: process.env.KAFKA_CLIENT_ID || 'email-microservice',
-      brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(',')
+      clientId: env.KAFKA_CLIENT_ID,
+      brokers: env.KAFKA_BROKERS.split(',')
     });
 
     this.producer = this.kafka.producer({
@@ -60,7 +61,7 @@ class KafkaProducer {
     const now = new Date().toISOString();
 
     await this.publishMessage(
-      process.env.KAFKA_TOPIC_SUCCESS || 'email.success',
+      env.KAFKA_TOPIC_SUCCESS,
       {
         originalMessage: originalPayload,
         result: {
@@ -80,13 +81,13 @@ class KafkaProducer {
     const now = new Date().toISOString();
 
     await this.publishMessage(
-      process.env.KAFKA_TOPIC_FAILED || 'email.failed',
+      env.KAFKA_TOPIC_FAILED,
       {
         originalMessage: originalPayload,
         error: {
           message: error.message,
           code: error.code,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          stack: env.isDevelopment() ? error.stack : undefined
         },
         status: 'failed',
         retryCount,

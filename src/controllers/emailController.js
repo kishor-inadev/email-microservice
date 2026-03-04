@@ -5,8 +5,9 @@ const validator = require('../utils/validator');
 const mongoService = require('../services/mongoService');
 const { metrics } = require('../utils/metrics');
 const { ValidationError, ServiceUnavailableError } = require('../utils/errors');
+const env = require('../config/env');
 
-const ENABLE_KAFKA = process.env.ENABLE_KAFKA === 'true';
+const ENABLE_KAFKA = env.ENABLE_KAFKA;
 let publishToKafka = null;
 
 if (ENABLE_KAFKA) {
@@ -102,7 +103,7 @@ async function sendEmail(req, res) {
   if (!emailPayload) return; // duplicate — already responded
 
   if (ENABLE_KAFKA) {
-    await publishToKafka(process.env.KAFKA_TOPIC_SEND || 'email.send', emailPayload);
+    await publishToKafka(env.KAFKA_TOPIC_SEND, emailPayload);
     const templateName = emailPayload.templateId || emailPayload.template;
     metrics.recordEmailQueued({ template: templateName });
 
@@ -173,7 +174,13 @@ async function getEmailLogs(req, res) {
   const options = {
     limit: parseInt(req.query.limit) || 100,
     skip: parseInt(req.query.skip) || 0,
-    sort: req.query.sort ? JSON.parse(req.query.sort) : { createdAt: -1 }
+    sort: (() => {
+      try {
+        return req.query.sort ? JSON.parse(req.query.sort) : { createdAt: -1 };
+      } catch {
+        return { createdAt: -1 }; // fallback silently on bad JSON
+      }
+    })()
   };
 
   const result = await mongoService.getEmailLogs(filters, options);

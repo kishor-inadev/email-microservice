@@ -6,6 +6,7 @@
 const logger = require('../utils/logger');
 const { AppError, isOperationalError, wrapError } = require('../utils/errors');
 const { metrics } = require('../utils/metrics');
+const env = require('../config/env');
 
 /**
  * Global error handler middleware
@@ -29,11 +30,11 @@ function errorHandler(error, req, res, next) {
     error: appError.message,
     errorCode: appError.errorCode,
     statusCode: appError.statusCode,
-    stack: process.env.NODE_ENV === 'development' ? appError.stack : undefined,
+    stack: env.isDevelopment() ? appError.stack : undefined,
     isOperational: appError.isOperational,
     method: req.method,
     path: req.path,
-    body: process.env.NODE_ENV === 'development' ? req.body : undefined,
+    body: env.isDevelopment() ? req.body : undefined,
     query: req.query
   });
 
@@ -44,7 +45,7 @@ function errorHandler(error, req, res, next) {
   });
 
   // Don't leak error details in production
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = env.isDevelopment();
 
   // Build error response
   const errorResponse = {
@@ -109,7 +110,7 @@ function handleUnhandledRejection(reason, promise) {
   metrics.recordError('UNHANDLED_REJECTION');
 
   // In production, you might want to do graceful shutdown
-  if (process.env.NODE_ENV === 'production') {
+  if (env.isProduction()) {
     // Give time to log the error before potential shutdown
     setTimeout(() => {
       // Optionally trigger graceful shutdown instead of throwing

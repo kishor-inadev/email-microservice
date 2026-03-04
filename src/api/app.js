@@ -5,14 +5,15 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 
+const env = require('../config/env');
 const emailController = require('../controllers/emailController');
 const logger = require('../utils/logger');
 const { errorHandler, notFoundHandler } = require('../middlewares/errorHandler');
 const { asyncHandler, asyncHandlerWithTimeout } = require('../middlewares/asyncHandler');
 const { metrics } = require('../utils/metrics');
 
-// Request timeout (30 seconds default)
-const REQUEST_TIMEOUT_MS = parseInt(process.env.REQUEST_TIMEOUT_MS) || 30000;
+// Request timeout from centralized config
+const REQUEST_TIMEOUT_MS = env.REQUEST_TIMEOUT_MS;
 
 // Cache package version at module load — avoid re-reading on every /health call
 const APP_VERSION = require('../../package.json').version;
@@ -24,14 +25,14 @@ const generateRequestId = crypto.randomUUID
 
 module.exports = function setupAPI(app) {
   // Trust proxy for correct IP detection behind load balancers
-  app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? true : 1);
+  app.set('trust proxy', env.TRUST_PROXY ? true : 1);
 
   // Security middleware
   app.use(helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production'
+    contentSecurityPolicy: env.isProduction()
   }));
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: env.CORS_ORIGIN,
     credentials: true
   }));
 
@@ -47,8 +48,8 @@ module.exports = function setupAPI(app) {
 
   // Rate limiting with per-IP tracking
   const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+    windowMs: env.RATE_LIMIT_WINDOW_MS,
+    max: env.RATE_LIMIT_MAX_REQUESTS,
     message: {
       success: false,
       error: 'RATE_LIMIT_EXCEEDED',
@@ -57,7 +58,7 @@ module.exports = function setupAPI(app) {
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => req.ip,
-    skip: (req) => process.env.NODE_ENV === 'test'
+    skip: (req) => env.isTest()
   });
 
   app.use('/send-email', limiter);
@@ -125,7 +126,7 @@ module.exports = function setupAPI(app) {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: process.env.NODE_ENV,
+      environment: env.NODE_ENV,
       version: APP_VERSION,
       pid: process.pid
     });
@@ -140,7 +141,7 @@ module.exports = function setupAPI(app) {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: process.env.NODE_ENV,
+      environment: env.NODE_ENV,
       version: APP_VERSION,
       pid: process.pid,
       dependencies: {
@@ -164,7 +165,7 @@ module.exports = function setupAPI(app) {
   app.get('/email-logs/:requestId', asyncHandler(emailController.getEmailLog));
 
   // Synchronous email endpoint (for testing)
-  if (process.env.ENABLE_SYNC_ENDPOINT === 'true') {
+  if (env.ENABLE_SYNC_ENDPOINT) {
     app.post('/send-email/sync', asyncHandlerWithTimeout(emailController.sendEmailSync, REQUEST_TIMEOUT_MS));
   }
 

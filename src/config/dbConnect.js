@@ -2,30 +2,35 @@
 
 const mongoose = require('mongoose');
 const { dbUrl, environment } = require('./setting');
-require('dotenv').config();
+const env = require('./env');
+const logger = require('../utils/logger');
 
 const options = {
-    maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE) || 20,
-    minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE) || 2,
-    maxIdleTimeMS: parseInt(process.env.DB_MAX_IDLE_TIME) || 30000,
+    maxPoolSize: env.MONGO_MAX_POOL_SIZE,
+    minPoolSize: env.MONGO_MIN_POOL_SIZE,
+    maxIdleTimeMS: env.DB_MAX_IDLE_TIME,
 
-    serverSelectionTimeoutMS: parseInt(process.env.DB_SERVER_SELECTION_TIMEOUT) || 5000,
-    socketTimeoutMS: parseInt(process.env.DB_SOCKET_TIMEOUT) || 45000,
-    connectTimeoutMS: parseInt(process.env.DB_CONNECT_TIMEOUT) || 10000,
+    serverSelectionTimeoutMS: env.DB_SERVER_SELECTION_TIMEOUT,
+    socketTimeoutMS: env.DB_SOCKET_TIMEOUT,
+    connectTimeoutMS: env.DB_CONNECT_TIMEOUT,
 
     bufferCommands: false,
-    retryWrites: true,
+    retryWrites: true,  // always true — separate concern from writeConcern
     retryReads: true,
     compressors: ['zlib'],
-    readPreference: 'primaryPreferred',
+    readPreference: env.MONGO_READ_PREFERENCE,
 
-    writeConcern: { w: 'majority', j: true, wtimeout: 10000 },
+    writeConcern: {
+        w: parseInt(env.MONGO_WRITE_CONCERN) || 'majority',
+        j: true,
+        wtimeout: 10000
+    },
 
-    heartbeatFrequencyMS: parseInt(process.env.DB_HEARTBEAT) || 10000,
+    heartbeatFrequencyMS: env.DB_HEARTBEAT,
     serverMonitoringMode: 'auto',
 
     autoIndex: environment === 'development',
-    autoCreate: true
+    autoCreate: environment !== 'production'  // never auto-create collections in production
 };
 
 const connectDB = async () => {
@@ -34,37 +39,27 @@ const connectDB = async () => {
             mongoose.set('debug', false);
         }
 
-        // Connection events
+        // Connection events — use logger, not console
         mongoose.connection.once('connected', () => {
-            console.log('✅ MongoDB connected');
+            logger.info('MongoDB connected');
         });
 
         mongoose.connection.on('error', err => {
-            console.error('🚨 MongoDB connection error:', err);
+            logger.error('MongoDB connection error', { error: err.message });
         });
 
         mongoose.connection.on('disconnected', () => {
-            console.warn('⚠️ MongoDB disconnected');
+            logger.warn('MongoDB disconnected');
         });
 
-        // Graceful shutdown without process.exit()
-        const gracefulExit = async () => {
-            try {
-                await mongoose.connection.close();
-                console.log('🛑 MongoDB connection closed gracefully');
-            } catch (err) {
-                console.error('❌ Error closing MongoDB connection:', err);
-            }
-        };
-
-        process.on('SIGINT', gracefulExit);
-        process.on('SIGTERM', gracefulExit);
+        // NOTE: Do NOT register SIGINT/SIGTERM here.
+        // index.js owns graceful shutdown and calls mongoService.disconnect().
 
         // Connect to DB
         await mongoose.connect(dbUrl, options);
     } catch (error) {
-        console.error('🚨 MongoDB connection failed:', error);
-        throw error; // ❗ Let the caller (main server) decide what to do
+        logger.error('MongoDB connection failed', { error: error.message });
+        throw error; // Let the caller (main server) decide what to do
     }
 };
 

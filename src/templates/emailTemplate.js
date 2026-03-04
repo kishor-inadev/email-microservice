@@ -1,4 +1,5 @@
 const { appUrl, applicaionName } = require('../config/setting');
+const env = require('../config/env');
 const buildEmailHTML = (opts = {}) => {
   // Support ctaButton as an alias for primaryCTA (backwards compat — many templates use ctaButton)
   if (opts.ctaButton && !opts.primaryCTA) opts = { ...opts, primaryCTA: opts.ctaButton };
@@ -3480,12 +3481,12 @@ const NEWSLETTER_WELCOME = ({ email, companyName, unsubscribeUrl }) => {
         </p>
       `,
       ctaButton: {
-        url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/blog`,
+        url: `${env.FRONTEND_URL}/blog`,
         text: 'Explore Latest Articles →',
         color: '#8b5cf6'
       },
       secondaryCta: {
-        url: `${process.env.FRONTEND_URL || 'http://localhost:3001'}`,
+        url: `${env.FRONTEND_URL}`,
         text: 'Visit Dashboard'
       },
       footerNote: `Happy coding! 🎉 • You're receiving this because you subscribed to ${companyName} newsletter.`

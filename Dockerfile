@@ -23,6 +23,7 @@ COPY package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy application source
+COPY index.js ./
 COPY src ./src
 
 # Create logs directory
@@ -34,12 +35,12 @@ RUN chown -R emailservice:nodejs /app
 # Switch to non-root user
 USER emailservice
 
-# Expose port
-EXPOSE 3000
+# Expose port (should match PORT in .env)
+EXPOSE 3100
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:3100/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
 CMD ["npm", "start"]

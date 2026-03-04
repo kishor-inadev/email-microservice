@@ -1,4 +1,5 @@
 const logger = require('./logger');
+const env = require('../config/env');
 
 /**
  * In-memory idempotency store
@@ -7,8 +8,8 @@ const logger = require('./logger');
 class IdempotencyStore {
   constructor() {
     this.store = new Map();
-    this.ttl = parseInt(process.env.IDEMPOTENCY_TTL_MS) || 3600000; // 1 hour
-    this.cleanupInterval = parseInt(process.env.IDEMPOTENCY_CLEANUP_INTERVAL_MS) || 300000; // 5 minutes
+    this.ttl = env.IDEMPOTENCY_TTL_MS;
+    this.cleanupInterval = env.IDEMPOTENCY_CLEANUP_INTERVAL_MS;
 
     // unref() so the timer doesn't block process exit
     this._timer = setInterval(() => this.cleanup(), this.cleanupInterval);

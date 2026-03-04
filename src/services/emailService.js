@@ -4,6 +4,7 @@ const { OAuth2Client } = require('google-auth-library');
 const { circuitBreakers } = require('../utils/circuitBreaker');
 const { metrics } = require('../utils/metrics');
 const { EmailDeliveryError, TemplateError, ServiceUnavailableError } = require('../utils/errors');
+const env = require('../config/env');
 
 // O(1) retryable SMTP code lookup
 const RETRYABLE_SMTP_CODES = new Set([421, 450, 451, 452]);
@@ -40,7 +41,7 @@ class EmailService {
     const requiredVars = ['EMAIL_USER', 'EMAIL_HOST', 'EMAIL_PORT'];
     if (options.service && !options.host && !options.port) return;
 
-    const missingVars = requiredVars.filter(v => !process.env[v] && !options[v.toLowerCase()]);
+    const missingVars = requiredVars.filter(v => !env[v] && !options[v.toLowerCase()]);
     if (missingVars.length > 0) {
       throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
     }
@@ -50,12 +51,12 @@ class EmailService {
   _getOAuth2Client() {
     if (!this._oauth2Client) {
       this._oauth2Client = new OAuth2Client(
-        process.env.OAUTH2_CLIENT_ID,
-        process.env.OAUTH2_CLIENT_SECRET,
-        process.env.OAUTH2_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
+        env.OAUTH2_CLIENT_ID,
+        env.OAUTH2_CLIENT_SECRET,
+        env.OAUTH2_REDIRECT_URI
       );
       this._oauth2Client.setCredentials({
-        refresh_token: process.env.OAUTH2_REFRESH_TOKEN
+        refresh_token: env.OAUTH2_REFRESH_TOKEN
       });
     }
     return this._oauth2Client;
@@ -65,27 +66,27 @@ class EmailService {
   initializeTransporter(options = {}) {
     this.validateEnvVariables(options);
 
-    const isGmail = options.service === 'gmail' || process.env.EMAIL_SERVICE === 'gmail';
+    const isGmail = options.service === 'gmail' || env.EMAIL_SERVICE === 'gmail';
 
     // Optimized SMTP config for high throughput
     const config = {
-      ...(options.service || process.env.EMAIL_SERVICE
-        ? { service: options.service || process.env.EMAIL_SERVICE }
+      ...(options.service || env.EMAIL_SERVICE
+        ? { service: options.service || env.EMAIL_SERVICE }
         : {}),
-      host: options.host || process.env.EMAIL_HOST,
-      port: parseInt(options.port || process.env.EMAIL_PORT) || 587,
-      secure: options.secure || process.env.EMAIL_SECURE === 'true' || false,
+      host: options.host || env.EMAIL_HOST,
+      port: parseInt(options.port) || env.EMAIL_PORT,
+      secure: options.secure || env.EMAIL_SECURE,
       pool: true,
-      maxConnections: parseInt(process.env.EMAIL_MAX_CONNECTIONS) || 20,
-      maxMessages: parseInt(process.env.EMAIL_MAX_MESSAGES) || 500,
-      rateDelta: parseInt(process.env.EMAIL_RATE_DELTA) || 1000,
-      rateLimit: parseInt(process.env.EMAIL_RATE_LIMIT) || 50,
+      maxConnections: env.EMAIL_MAX_CONNECTIONS,
+      maxMessages: env.EMAIL_MAX_MESSAGES,
+      rateDelta: env.EMAIL_RATE_DELTA,
+      rateLimit: env.EMAIL_RATE_LIMIT,
       tls: {
-        rejectUnauthorized: process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false',
-        minVersion: process.env.EMAIL_TLS_MIN_VERSION || 'TLSv1.2'
+        rejectUnauthorized: env.EMAIL_TLS_REJECT_UNAUTHORIZED,
+        minVersion: env.EMAIL_TLS_MIN_VERSION
       },
-      logger: process.env.EMAIL_DEBUG === 'true' ? console : false,
-      debug: process.env.EMAIL_DEBUG === 'true',
+      logger: env.EMAIL_DEBUG ? console : false,
+      debug: env.EMAIL_DEBUG,
       greetingTimeout: 10000,
       connectionTimeout: 10000,
       socketTimeout: 30000
@@ -94,16 +95,16 @@ class EmailService {
     /** AUTH CONFIG */
     if (
       isGmail &&
-      process.env.OAUTH2_CLIENT_ID &&
-      process.env.OAUTH2_CLIENT_SECRET &&
-      process.env.OAUTH2_REFRESH_TOKEN
+      env.OAUTH2_CLIENT_ID &&
+      env.OAUTH2_CLIENT_SECRET &&
+      env.OAUTH2_REFRESH_TOKEN
     ) {
       config.auth = {
         type: 'OAuth2',
-        user: options.user || process.env.EMAIL_USER,
-        clientId: process.env.OAUTH2_CLIENT_ID,
-        clientSecret: process.env.OAUTH2_CLIENT_SECRET,
-        refreshToken: process.env.OAUTH2_REFRESH_TOKEN
+        user: options.user || env.EMAIL_USER,
+        clientId: env.OAUTH2_CLIENT_ID,
+        clientSecret: env.OAUTH2_CLIENT_SECRET,
+        refreshToken: env.OAUTH2_REFRESH_TOKEN
       };
 
       // Reuse cached OAuth2 client instead of creating one per token refresh
@@ -114,8 +115,8 @@ class EmailService {
       };
     } else {
       config.auth = {
-        user: options.user || process.env.EMAIL_USER,
-        pass: options.pass || process.env.EMAIL_PASS
+        user: options.user || env.EMAIL_USER,
+        pass: options.pass || env.EMAIL_PASS
       };
     }
 
@@ -132,16 +133,16 @@ class EmailService {
 
   /** Fallback transporter (optional) */
   createFallbackTransporter() {
-    if (!process.env.FALLBACK_EMAIL_HOST && !process.env.FALLBACK_EMAIL_SERVICE) return null;
+    if (!env.FALLBACK_EMAIL_HOST && !env.FALLBACK_EMAIL_SERVICE) return null;
 
     return (this.transporter = nodemailer.createTransport({
-      service: process.env.FALLBACK_EMAIL_SERVICE,
-      host: process.env.FALLBACK_EMAIL_HOST,
-      port: process.env.FALLBACK_EMAIL_PORT,
-      secure: process.env.FALLBACK_EMAIL_SECURE === 'true',
+      service: env.FALLBACK_EMAIL_SERVICE,
+      host: env.FALLBACK_EMAIL_HOST,
+      port: env.FALLBACK_EMAIL_PORT,
+      secure: env.FALLBACK_EMAIL_SECURE,
       auth: {
-        user: process.env.FALLBACK_EMAIL_USER,
-        pass: process.env.FALLBACK_EMAIL_PASS
+        user: env.FALLBACK_EMAIL_USER,
+        pass: env.FALLBACK_EMAIL_PASS
       }
     }));
   }
@@ -231,7 +232,7 @@ class EmailService {
         const { subject, html, text } = this.renderTemplate(templateName, data);
 
         const mailOptions = {
-          from: from || `${process.env.DEFAULT_FROM_NAME || 'Company'} <${process.env.DEFAULT_FROM_EMAIL}>`,
+          from: from || `${env.DEFAULT_FROM_NAME} <${env.DEFAULT_FROM_EMAIL}>`,
           to,
           subject,
           html,

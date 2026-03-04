@@ -4,6 +4,7 @@ const EmailLog = require('../models/EmailLog');
 const { circuitBreakers } = require('../utils/circuitBreaker');
 const { metrics } = require('../utils/metrics');
 const { DatabaseError } = require('../utils/errors');
+const env = require('../config/env');
 
 class MongoService {
   constructor() {
@@ -33,7 +34,7 @@ class MongoService {
         const emailLog = new EmailLog({
           requestId: emailData.requestId,
           to: Array.isArray(emailData.to) ? emailData.to : [emailData.to],
-          from: emailData.from || process.env.DEFAULT_FROM_EMAIL,
+          from: emailData.from || env.DEFAULT_FROM_EMAIL,
           cc: emailData.cc ? (Array.isArray(emailData.cc) ? emailData.cc : [emailData.cc]) : [],
           bcc: emailData.bcc ? (Array.isArray(emailData.bcc) ? emailData.bcc : [emailData.bcc]) : [],
           template: emailData.template,
