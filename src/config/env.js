@@ -72,8 +72,7 @@ const env = {
   DEFAULT_FROM_EMAIL: process.env.DEFAULT_FROM_EMAIL || '',
   DEFAULT_FROM_NAME:  process.env.DEFAULT_FROM_NAME || 'Company',
 
-  // Email pool / throughput
-  EMAIL_POOL:            process.env.EMAIL_POOL !== 'false',
+  // Email throughput
   EMAIL_MAX_CONNECTIONS: parseInt(process.env.EMAIL_MAX_CONNECTIONS) || 20,
   EMAIL_MAX_MESSAGES:    parseInt(process.env.EMAIL_MAX_MESSAGES) || 500,
   EMAIL_RATE_DELTA:      parseInt(process.env.EMAIL_RATE_DELTA) || 1000,
@@ -87,8 +86,6 @@ const env = {
   EMAIL_DEBUG:          process.env.EMAIL_DEBUG === 'true',
   EMAIL_RETRY_LIMIT:    parseInt(process.env.EMAIL_RETRY_LIMIT) || 3,
   EMAIL_RETRY_BACKOFF_MS: parseInt(process.env.EMAIL_RETRY_BACKOFF_MS) || 5000,
-  EMAIL_VERIFY_RETRIES: parseInt(process.env.EMAIL_VERIFY_RETRIES) || 3,
-  EMAIL_VERIFY_DELAY:   parseInt(process.env.EMAIL_VERIFY_DELAY) || 2000,
 
   // ─── Fallback Email ───────────────────────────────────────────────────────
   FALLBACK_EMAIL_SERVICE: process.env.FALLBACK_EMAIL_SERVICE || '',

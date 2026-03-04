@@ -155,6 +155,8 @@ class EmailService {
       try {
         await this.transporter.verify();
         logger.info('Email service connection verified');
+        console.log('Email service connection verified');
+
         return { success: true, message: '✅ Email service is ready' };
       } catch (error) {
         attempts++;
@@ -165,6 +167,7 @@ class EmailService {
           if (fallback) {
             try {
               await fallback.verify();
+              console.log('Fallback email service verified');
               return { success: true, message: 'Fallback email service verified' };
             } catch (fallbackError) {
               logger.error('Fallback email verification failed', { error: fallbackError.message });

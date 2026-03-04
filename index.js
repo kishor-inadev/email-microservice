@@ -74,6 +74,15 @@ async function startWorker() {
   try {
     await connectDB();
 
+    const emailConnection = await emailService.verifyEmailConnection(
+      env.EMAIL_RETRY_LIMIT,
+      env.EMAIL_RETRY_BACKOFF_MS
+    );
+
+    if (!emailConnection?.success) {
+      throw new Error(`Email service verification failed: ${emailConnection?.error || 'Unknown error'}`);
+    }
+
     // Create Express app
     const app = express();
 
@@ -91,8 +100,6 @@ async function startWorker() {
 
     // Configure keep-alive for high throughput
     const server = app.listen(PORT, () => {
-      emailService.verifyEmailConnection();
-
       logger.info(`Email microservice running on port ${PORT}`, {
         port: PORT,
         environment: env.NODE_ENV,
