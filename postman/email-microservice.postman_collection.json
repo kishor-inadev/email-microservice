@@ -1,0 +1,1348 @@
+{
+  "info": {
+    "_postman_id": "em-svc-collection-001",
+    "name": "Email Microservice",
+    "description": "Complete API reference for the Email Microservice.\n\n**Base URL:** `{{baseUrl}}` (default: `http://localhost:3500`)\n\n**Auth:** None — this service is internal-network only, secured at the infra layer.\n\n**Key behaviours:**\n- `template` and `templateId` are interchangeable in the send body.\n- In Kafka mode (`ENABLE_KAFKA=true`) the async `POST /send-email` returns **202 Queued**; the sync endpoint always sends directly.\n- The sync endpoint (`POST /send-email/sync`) only exists when `ENABLE_SYNC_ENDPOINT=true`.\n- `idempotencyKey` deduplicates within `IDEMPOTENCY_TTL_MS` (default 1 h, in-memory).\n\n**Capture request IDs:** The \"Send Email\" folder requests all contain a test script that saves the returned `requestId` into the `lastRequestId` collection variable so log-lookup requests are pre-filled automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3500",
+      "type": "string",
+      "description": "Base URL of the email microservice"
+    },
+    {
+      "key": "lastRequestId",
+      "value": "",
+      "type": "string",
+      "description": "Auto-populated after any send-email request — used by the log-lookup requests"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Monitoring",
+      "description": "Liveness and readiness probes, plus internal metrics.",
+      "item": [
+        {
+          "name": "Health – Ping",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Fast liveness check. Always returns 200 when the process is running.",
+            "header": []
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2026-03-08T10:00:00.000Z\",\n  \"uptime\": 3723.4,\n  \"environment\": \"development\",\n  \"version\": \"1.0.0\",\n  \"pid\": 12345\n}"
+            }
+          ]
+        },
+        {
+          "name": "Health – Detailed",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health/detailed",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "detailed"]
+            },
+            "description": "Deep health check that pings MongoDB and the SMTP relay. Returns **200** when all dependencies are reachable, **503** when MongoDB is disconnected.",
+            "header": []
+          },
+          "response": [
+            {
+              "name": "200 Healthy",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2026-03-08T10:00:00.000Z\",\n  \"uptime\": 3723.4,\n  \"environment\": \"development\",\n  \"version\": \"1.0.0\",\n  \"pid\": 12345,\n  \"dependencies\": {\n    \"mongodb\": \"connected\",\n    \"smtp\": \"connected\"\n  }\n}"
+            },
+            {
+              "name": "503 Degraded",
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"unhealthy\",\n  \"timestamp\": \"2026-03-08T10:00:00.000Z\",\n  \"uptime\": 3723.4,\n  \"environment\": \"production\",\n  \"version\": \"1.0.0\",\n  \"pid\": 12345,\n  \"dependencies\": {\n    \"mongodb\": \"disconnected\",\n    \"smtp\": \"connected\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics"]
+            },
+            "description": "Internal counters: total emails sent/failed/queued, circuit breaker states, and optional MongoDB aggregate stats.",
+            "header": []
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"emailsSent\": 1024,\n  \"emailsFailed\": 3,\n  \"emailsQueued\": 0,\n  \"circuitBreakers\": {\n    \"email\":    { \"state\": \"closed\", \"failures\": 0 },\n    \"database\": { \"state\": \"closed\", \"failures\": 0 }\n  },\n  \"database\": {\n    \"sent\":     820,\n    \"failed\":    3,\n    \"queued\":    0,\n    \"retrying\":  1\n  },\n  \"timestamp\": \"2026-03-08T10:00:00.000Z\",\n  \"requestId\": \"ab12cd34-ef56-7890-abcd-ef1234567890\",\n  \"statusCode\": 200,\n  \"status\": \"success\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Send Email – Auth & User",
+      "description": "Auth/user-lifecycle notification templates shared across all microservices.\n\nAll requests capture the returned `requestId` into `{{lastRequestId}}` via a test script.",
+      "item": [
+        {
+          "name": "Welcome – New User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"USER_WELCOME\",\n  \"data\": {\n    \"userId\": \"usr_abc123\",\n    \"username\": \"janedoe\",\n    \"email\": \"jane.doe@example.com\",\n    \"verifyLink\": \"https://yourapp.com/verify?token=abc123\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Send the welcome email with email-verification link to a freshly registered user."
+          }
+        },
+        {
+          "name": "Email Verified",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"EMAIL_VERIFIED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"verifiedItem\": \"email address\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Confirmation sent after a user successfully verifies their email address."
+          }
+        },
+        {
+          "name": "Password Reset – Requested",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"PASSWORD_RESET_REQUESTED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"resetLink\": \"https://yourapp.com/reset?token=resettoken123\",\n    \"resetUrl\":  \"https://yourapp.com/reset?token=resettoken123\",\n    \"resetToken\": \"resettoken123\",\n    \"expiryHours\": 1\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sends a password-reset link. `expiryHours` tells the user how long the link is valid."
+          }
+        },
+        {
+          "name": "Password Changed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"PASSWORD_CHANGED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Security notification sent after a password is successfully changed."
+          }
+        },
+        {
+          "name": "New Device Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"NEW_DEVICE_LOGIN\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"ipAddress\": \"203.0.113.42\",\n    \"location\": \"London, UK\",\n    \"device\": \"Chrome on macOS\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Alert sent when a login is detected from an unrecognised device or location."
+          }
+        },
+        {
+          "name": "Login Failed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"LOGIN_FAILED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"ipAddress\": \"203.0.113.42\",\n    \"location\": \"Berlin, DE\",\n    \"device\": \"Firefox on Windows\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Notification sent after a failed login attempt."
+          }
+        },
+        {
+          "name": "Account Locked",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"ACCOUNT_LOCKED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"maxAttempts\": 5,\n    \"reason\": \"Too many failed login attempts\",\n    \"supportUrl\": \"https://yourapp.com/support\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sent when an account is locked due to too many failed login attempts."
+          }
+        },
+        {
+          "name": "Account Unlocked",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"ACCOUNT_UNLOCKED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Confirms to the user that their account lock has been lifted."
+          }
+        },
+        {
+          "name": "Account Recovery Requested",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"ACCOUNT_RECOVERY_REQUESTED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"unlockLink\": \"https://yourapp.com/unlock?token=unlocktoken456\",\n    \"expiryHours\": 24,\n    \"accountId\": \"usr_abc123\",\n    \"reason\": \"Account locked after repeated failed logins\",\n    \"supportUrl\": \"https://yourapp.com/support\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sends the self-service unlock / account-recovery link."
+          }
+        },
+        {
+          "name": "MFA Enabled",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"MFA_ENABLED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"device\": \"Chrome on macOS\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Security notification confirming two-factor authentication was turned on."
+          }
+        },
+        {
+          "name": "MFA Disabled",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"MFA_DISABLED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"device\": \"Chrome on macOS\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Security notification confirming two-factor authentication was turned off."
+          }
+        },
+        {
+          "name": "Role Assigned",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"ROLE_ASSIGNED\",\n  \"data\": {\n    \"username\": \"janedoe\",\n    \"roleName\": \"admin\",\n    \"permissions\": [\"users:read\", \"users:write\", \"leads:read\"],\n    \"changedBy\": \"superadmin\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Notifies a user when a new role is assigned to their account."
+          }
+        },
+        {
+          "name": "Social Login Connected",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"SOCIAL_LOGIN_CONNECTED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"provider\": \"google\",\n    \"email\": \"jane.doe@gmail.com\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Confirms that a social OAuth account (Google, GitHub, etc.) was linked."
+          }
+        },
+        {
+          "name": "Account Terminated",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"jane.doe@example.com\",\n  \"templateId\": \"ACCOUNT_TERMINATED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"accountId\": \"usr_abc123\",\n    \"reason\": \"Violation of terms of service\",\n    \"supportUrl\": \"https://yourapp.com/support\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Notification sent when an account is permanently terminated."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Send Email – Web Agency",
+      "description": "Templates used by the web-agency-backend-api service for contact forms, project inquiries, newsletter subscriptions, and proposal delivery.",
+      "item": [
+        {
+          "name": "Contact – Admin Notification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"admin@webagency.com\",\n  \"templateId\": \"CONTACT_NOTIFICATION\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"email\": \"john.smith@example.com\",\n    \"phone\": \"+44 7700 900123\",\n    \"company\": \"Acme Ltd\",\n    \"subject\": \"Website redesign enquiry\",\n    \"message\": \"Hi, we are interested in a full website redesign for our company. Could you send us more info?\",\n    \"submittedAt\": \"2026-03-08T10:00:00Z\",\n    \"contactId\": \"contact_xyz789\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sent to the agency admin when a contact form is submitted on the website."
+          }
+        },
+        {
+          "name": "Contact – User Confirmation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"john.smith@example.com\",\n  \"templateId\": \"CONTACT_CONFIRMATION\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"subject\": \"Website redesign enquiry\",\n    \"companyName\": \"Web Agency Co.\",\n    \"contactId\": \"contact_xyz789\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Auto-reply sent to the person who filled in the contact form."
+          }
+        },
+        {
+          "name": "Inquiry – Admin Notification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"admin@webagency.com\",\n  \"templateId\": \"INQUIRY_NOTIFICATION\",\n  \"data\": {\n    \"name\": \"Sarah Connor\",\n    \"email\": \"sarah@skynet.io\",\n    \"phone\": \"+1 555 0199\",\n    \"company\": \"Skynet Inc.\",\n    \"projectType\": \"webapp\",\n    \"budget\": \"25k-50k\",\n    \"timeline\": \"3-6months\",\n    \"description\": \"We need a customer portal with dashboard and reporting.\",\n    \"requirements\": [\"SSO integration\", \"Real-time charts\", \"PDF exports\"],\n    \"submittedAt\": \"2026-03-08T10:00:00Z\",\n    \"inquiryId\": \"inq_001\",\n    \"inquiryNumber\": \"INQ-2026-001\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sent to the agency admin when a detailed project inquiry is submitted."
+          }
+        },
+        {
+          "name": "Inquiry – User Confirmation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"sarah@skynet.io\",\n  \"templateId\": \"INQUIRY_CONFIRMATION\",\n  \"data\": {\n    \"name\": \"Sarah Connor\",\n    \"projectType\": \"webapp\",\n    \"budget\": \"25k-50k\",\n    \"timeline\": \"3-6months\",\n    \"companyName\": \"Web Agency Co.\",\n    \"inquiryId\": \"inq_001\",\n    \"inquiryNumber\": \"INQ-2026-001\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Auto-reply sent to the prospect after submitting a project inquiry."
+          }
+        },
+        {
+          "name": "Newsletter – Welcome",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"subscriber@example.com\",\n  \"templateId\": \"NEWSLETTER_WELCOME\",\n  \"data\": {\n    \"email\": \"subscriber@example.com\",\n    \"companyName\": \"Web Agency Co.\",\n    \"unsubscribeUrl\": \"https://yourapp.com/newsletter/unsubscribe?token=unsub_token_abc\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Welcome email sent after a newsletter subscription is confirmed."
+          }
+        },
+        {
+          "name": "Project Proposal Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"sarah@skynet.io\",\n  \"templateId\": \"PROJECT_PROPOSAL_EMAIL\",\n  \"data\": {\n    \"clientName\": \"Sarah Connor\",\n    \"projectName\": \"Skynet Customer Portal\",\n    \"proposalUrl\": \"https://yourapp.com/uploads/proposals/proposal_inq_001.html\",\n    \"proposalNumber\": \"PROP-2026-001\",\n    \"issueDate\": \"2026-03-08\",\n    \"validUntil\": \"2026-04-08\",\n    \"companyName\": \"Web Agency Co.\",\n    \"contactEmail\": \"hello@webagency.com\",\n    \"contactPhone\": \"+44 20 7946 0001\",\n    \"message\": \"Please find attached our detailed proposal for the Skynet Customer Portal project. We look forward to working with you.\",\n    \"baseUrl\": \"https://yourapp.com\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Delivers a project proposal to a prospect. `proposalUrl` links to the rendered HTML proposal hosted on the web-agency-backend-api `/uploads/proposals/` path."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Send Email – Org & Access Control",
+      "description": "Organisation lifecycle and access-management notification templates.",
+      "item": [
+        {
+          "name": "Org Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"owner@company.com\",\n  \"templateId\": \"ORG_CREATED\",\n  \"data\": {\n    \"orgName\": \"Acme Corp\",\n    \"orgId\": \"org_abc123\",\n    \"ownerEmail\": \"owner@company.com\",\n    \"createdAt\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Welcome email to the owner when a new organisation is provisioned."
+          }
+        },
+        {
+          "name": "Org Member Invited",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"newmember@example.com\",\n  \"templateId\": \"ORG_MEMBER_INVITED\",\n  \"data\": {\n    \"orgName\": \"Acme Corp\",\n    \"invitedBy\": \"owner@company.com\",\n    \"role\": \"member\",\n    \"inviteLink\": \"https://yourapp.com/invite/accept?token=invitetoken789\",\n    \"expiryHours\": 48\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Invitation email sent when a user is added to an organisation."
+          }
+        },
+        {
+          "name": "Org Plan Changed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"owner@company.com\",\n  \"templateId\": \"ORG_PLAN_CHANGED\",\n  \"data\": {\n    \"orgName\": \"Acme Corp\",\n    \"oldPlan\": \"starter\",\n    \"newPlan\": \"pro\",\n    \"effectiveDate\": \"2026-03-08\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Notification when an organisation's subscription plan is upgraded or downgraded."
+          }
+        },
+        {
+          "name": "Org API Key Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"owner@company.com\",\n  \"templateId\": \"ORG_API_KEY_CREATED\",\n  \"data\": {\n    \"orgName\": \"Acme Corp\",\n    \"keyName\": \"Production API Key\",\n    \"createdBy\": \"owner@company.com\",\n    \"createdAt\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Security notification when a new API key is generated for an organisation."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Send Email – Finance & Commerce",
+      "description": "Payment, invoice, order, and subscription notification templates.",
+      "item": [
+        {
+          "name": "Payment Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"customer@example.com\",\n  \"templateId\": \"PAYMENT_SUCCESS\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"amount\": \"£49.99\",\n    \"currency\": \"GBP\",\n    \"transactionId\": \"txn_abc123\",\n    \"paymentMethod\": \"Visa •••• 4242\",\n    \"paidAt\": \"2026-03-08T10:00:00Z\",\n    \"receiptUrl\": \"https://yourapp.com/receipts/txn_abc123\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Receipt email sent after a successful payment."
+          }
+        },
+        {
+          "name": "Payment Failed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"customer@example.com\",\n  \"templateId\": \"PAYMENT_FAILED\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"amount\": \"£49.99\",\n    \"currency\": \"GBP\",\n    \"reason\": \"Insufficient funds\",\n    \"retryUrl\": \"https://yourapp.com/billing/retry\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Alert sent when a payment attempt fails."
+          }
+        },
+        {
+          "name": "Invoice Generated",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"customer@example.com\",\n  \"templateId\": \"INVOICE_GENERATED\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"invoiceNumber\": \"INV-2026-0042\",\n    \"amount\": \"£149.99\",\n    \"dueDate\": \"2026-04-08\",\n    \"invoiceUrl\": \"https://yourapp.com/invoices/INV-2026-0042\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sent when an invoice is generated for a customer."
+          }
+        },
+        {
+          "name": "Order Created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"customer@example.com\",\n  \"templateId\": \"ORDER_CREATED\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"orderId\": \"ord_001\",\n    \"orderNumber\": \"ORD-2026-001\",\n    \"items\": [\n      { \"name\": \"Web Design Package\", \"quantity\": 1, \"price\": \"£1,200.00\" }\n    ],\n    \"total\": \"£1,200.00\",\n    \"orderUrl\": \"https://yourapp.com/orders/ord_001\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Order confirmation email sent to the customer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Send Email – Advanced Options",
+      "description": "Demonstrations of advanced request features: CC/BCC, attachments, idempotency keys, custom `from`, multiple recipients, and the synchronous endpoint.",
+      "item": [
+        {
+          "name": "With CC & BCC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"primary@example.com\",\n  \"cc\": [\"manager@example.com\", \"team@example.com\"],\n  \"bcc\": \"compliance@example.com\",\n  \"templateId\": \"CONTACT_NOTIFICATION\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"email\": \"john.smith@example.com\",\n    \"phone\": \"+44 7700 900123\",\n    \"company\": \"Acme Ltd\",\n    \"subject\": \"Urgent project enquiry\",\n    \"message\": \"We need a quote ASAP.\",\n    \"submittedAt\": \"2026-03-08T10:00:00Z\",\n    \"contactId\": \"contact_cc_test\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Shows how to send to multiple CC recipients (array) and a single BCC recipient (string). Both fields accept either a string or an array."
+          }
+        },
+        {
+          "name": "With Attachment (Base64)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"client@example.com\",\n  \"templateId\": \"PROJECT_PROPOSAL_EMAIL\",\n  \"data\": {\n    \"clientName\": \"Jane Doe\",\n    \"projectName\": \"E-commerce Redesign\",\n    \"proposalUrl\": \"https://yourapp.com/uploads/proposals/proposal_001.html\",\n    \"proposalNumber\": \"PROP-2026-002\",\n    \"issueDate\": \"2026-03-08\",\n    \"validUntil\": \"2026-04-08\",\n    \"companyName\": \"Web Agency Co.\",\n    \"contactEmail\": \"hello@webagency.com\",\n    \"contactPhone\": \"+44 20 7946 0001\",\n    \"message\": \"Please find the PDF summary attached.\",\n    \"baseUrl\": \"https://yourapp.com\"\n  },\n  \"attachments\": [\n    {\n      \"filename\": \"proposal-summary.pdf\",\n      \"content\": \"JVBERi0xLjQKJcfs...\",\n      \"contentType\": \"application/pdf\",\n      \"encoding\": \"base64\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Demonstrates attaching a file via base64 content. Replace the `content` value with a real base64-encoded file."
+          }
+        },
+        {
+          "name": "With Idempotency Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);",
+                  "// Re-send this same request to see the 202 'already processed' response"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"templateId\": \"PASSWORD_CHANGED\",\n  \"idempotencyKey\": \"pwdchange20260308user123\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sends with an `idempotencyKey`. If you send this same request a second time within the TTL window (default 1 hour), the service returns **202 Already Processed** without sending a duplicate email.\n\n`idempotencyKey` must be alphanumeric only (`/^[a-zA-Z0-9]+$/`)."
+          }
+        },
+        {
+          "name": "Multiple Recipients",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": [\"alice@example.com\", \"bob@example.com\", \"charlie@example.com\"],\n  \"templateId\": \"SYSTEM_ALERT\",\n  \"data\": {\n    \"alertType\": \"deployment\",\n    \"message\": \"New release v2.4.0 has been deployed to production.\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sends a single email with multiple addresses in `to`. All recipients receive the same rendered template."
+          }
+        },
+        {
+          "name": "Custom From Address",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"from\": \"noreply-billing@yourapp.com\",\n  \"templateId\": \"INVOICE_GENERATED\",\n  \"data\": {\n    \"name\": \"John Smith\",\n    \"invoiceNumber\": \"INV-2026-0043\",\n    \"amount\": \"£29.99\",\n    \"dueDate\": \"2026-04-08\",\n    \"invoiceUrl\": \"https://yourapp.com/invoices/INV-2026-0043\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Overrides the `DEFAULT_FROM_EMAIL` env var with a custom `from` address for this specific message."
+          }
+        },
+        {
+          "name": "Sync Send (force direct SMTP)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email", "sync"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"templateId\": \"PASSWORD_RESET_REQUESTED\",\n  \"data\": {\n    \"name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"resetLink\": \"https://yourapp.com/reset?token=synctoken123\",\n    \"resetUrl\":  \"https://yourapp.com/reset?token=synctoken123\",\n    \"resetToken\": \"synctoken123\",\n    \"expiryHours\": 1\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Forces a **synchronous** SMTP delivery even in Kafka mode — always returns **200** with a `messageId` when successful.\n\n⚠️ This endpoint only exists when `ENABLE_SYNC_ENDPOINT=true` in the service `.env`. Returns **404** otherwise."
+          }
+        },
+        {
+          "name": "With Custom X-Request-ID Header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) pm.collectionVariables.set('lastRequestId', json.requestId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Request-ID", "value": "my-trace-id-from-upstream-service-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"templateId\": \"USER_WELCOME\",\n  \"data\": {\n    \"userId\": \"usr_trace_test\",\n    \"username\": \"tracetest\",\n    \"email\": \"user@example.com\",\n    \"verifyLink\": \"https://yourapp.com/verify?token=trace123\",\n    \"timestamp\": \"2026-03-08T10:00:00Z\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Demonstrates passing a custom `X-Request-ID` header for distributed tracing correlation. The server echoes this value back in the `requestId` field of the response."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Email Logs",
+      "description": "Query email delivery logs stored in MongoDB. All endpoints require MongoDB to be connected (503 otherwise).",
+      "item": [
+        {
+          "name": "List All Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/email-logs",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-logs"]
+            },
+            "header": [],
+            "description": "Returns the most recent 100 log entries (default `limit=100`, `skip=0`, sorted by `createdAt` descending)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"logs\": [\n    {\n      \"requestId\": \"ab12cd34-ef56-7890-abcd-ef1234567890\",\n      \"to\": [\"user@example.com\"],\n      \"from\": \"noreply@yourapp.com\",\n      \"template\": \"USER_WELCOME\",\n      \"status\": \"sent\",\n      \"messageId\": \"<unique-smtp-message-id@mail.example.com>\",\n      \"retryCount\": 0,\n      \"sentAt\": \"2026-03-08T10:00:01.000Z\",\n      \"createdAt\": \"2026-03-08T10:00:00.000Z\"\n    }\n  ],\n  \"total\": 1,\n  \"requestId\": \"srv-req-uuid\",\n  \"timestamp\": \"2026-03-08T10:00:05.000Z\",\n  \"statusCode\": 200,\n  \"status\": \"success\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Logs – Filter by Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/email-logs?status=failed&limit=20&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-logs"],
+              "query": [
+                { "key": "status", "value": "failed", "description": "queued | sent | failed | retrying" },
+                { "key": "limit",  "value": "20" },
+                { "key": "skip",   "value": "0" }
+              ]
+            },
+            "header": [],
+            "description": "Filters logs to a specific delivery status. Valid values: `queued`, `sent`, `failed`, `retrying`."
+          }
+        },
+        {
+          "name": "List Logs – Date Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/email-logs?startDate=2026-03-08T00:00:00Z&endDate=2026-03-08T23:59:59Z&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-logs"],
+              "query": [
+                { "key": "startDate", "value": "2026-03-08T00:00:00Z", "description": "ISO 8601 — createdAt >= this value" },
+                { "key": "endDate",   "value": "2026-03-08T23:59:59Z", "description": "ISO 8601 — createdAt <= this value" },
+                { "key": "limit",     "value": "50" }
+              ]
+            },
+            "header": [],
+            "description": "Retrieves all logs created within the given date window."
+          }
+        },
+        {
+          "name": "List Logs – Paginate & Custom Sort",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/email-logs?limit=10&skip=10&sort={\"sentAt\":-1}",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-logs"],
+              "query": [
+                { "key": "limit", "value": "10" },
+                { "key": "skip",  "value": "10", "description": "Page 2 of 10-per-page results" },
+                { "key": "sort",  "value": "{\"sentAt\":-1}", "description": "MongoDB sort spec as JSON string" }
+              ]
+            },
+            "header": [],
+            "description": "Demonstrates pagination (`skip` / `limit`) and a custom sort field. `sort` is a JSON string parsed server-side."
+          }
+        },
+        {
+          "name": "Get Log by Request ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/email-logs/{{lastRequestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["email-logs", "{{lastRequestId}}"]
+            },
+            "header": [],
+            "description": "Looks up a single email log by its `requestId`. The `{{lastRequestId}}` variable is automatically populated by the test scripts in the Send Email folder — just run any send request first."
+          },
+          "response": [
+            {
+              "name": "200 Found",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"requestId\": \"ab12cd34-ef56-7890-abcd-ef1234567890\",\n    \"to\": [\"user@example.com\"],\n    \"from\": \"noreply@yourapp.com\",\n    \"cc\": [],\n    \"bcc\": [],\n    \"template\": \"USER_WELCOME\",\n    \"templateId\": null,\n    \"subject\": \"Welcome!\",\n    \"data\": {},\n    \"status\": \"sent\",\n    \"messageId\": \"<unique-smtp-message-id@mail.example.com>\",\n    \"retryCount\": 0,\n    \"idempotencyKey\": null,\n    \"metadata\": {\n      \"accepted\": [\"user@example.com\"],\n      \"rejected\": []\n    },\n    \"sentAt\": \"2026-03-08T10:00:01.000Z\",\n    \"createdAt\": \"2026-03-08T10:00:00.000Z\",\n    \"updatedAt\": \"2026-03-08T10:00:01.000Z\"\n  },\n  \"requestId\": \"srv-req-uuid\",\n  \"timestamp\": \"2026-03-08T10:00:05.000Z\",\n  \"statusCode\": 200,\n  \"status\": \"success\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": false,\n  \"error\": \"NOT_FOUND\",\n  \"message\": \"Email log not found\",\n  \"requestId\": \"srv-req-uuid\",\n  \"timestamp\": \"2026-03-08T10:00:05.000Z\",\n  \"statusCode\": 404,\n  \"status\": \"error\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Scenarios",
+      "description": "Reference requests that demonstrate error responses from the service.",
+      "item": [
+        {
+          "name": "400 – Missing Required Field",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateId\": \"USER_WELCOME\",\n  \"data\": { \"username\": \"janedoe\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Missing the required `to` field — returns **400 VALIDATION_ERROR** with a `details` array.\n\nExpected response:\n```json\n{\n  \"success\": false,\n  \"error\": \"VALIDATION_ERROR\",\n  \"details\": [{ \"field\": \"to\", \"message\": \"\\\"to\\\" is required\" }]\n}\n```"
+          }
+        },
+        {
+          "name": "400 – Missing Template",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"data\": { \"name\": \"Test\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Neither `template` nor `templateId` is provided — Joi `.or()` validation fires.\n\nExpected response:\n```json\n{\n  \"success\": false,\n  \"error\": \"VALIDATION_ERROR\",\n  \"details\": [{ \"message\": \"\\\"value\\\" must contain at least one of [template, templateId]\" }]\n}\n```"
+          }
+        },
+        {
+          "name": "400 – Unknown Template ID",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"templateId\": \"THIS_TEMPLATE_DOES_NOT_EXIST\",\n  \"data\": {}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "A template ID that doesn't exist in `emailTemplate.js` — returns **400 TEMPLATE_ERROR**.\n\nExpected response:\n```json\n{\n  \"success\": false,\n  \"error\": \"TEMPLATE_ERROR\",\n  \"message\": \"Template not found: THIS_TEMPLATE_DOES_NOT_EXIST\"\n}\n```"
+          }
+        },
+        {
+          "name": "400 – Invalid Idempotency Key Format",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/send-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["send-email"]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"user@example.com\",\n  \"templateId\": \"USER_WELCOME\",\n  \"idempotencyKey\": \"invalid-key-with-dashes!\",\n  \"data\": { \"username\": \"janedoe\", \"email\": \"user@example.com\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "`idempotencyKey` must match `/^[a-zA-Z0-9]+$/` (alphanumeric only, no hyphens or special characters)."
+          }
+        }
+      ]
+    }
+  ]
+}

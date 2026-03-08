@@ -25,7 +25,7 @@ const baseEmailFields = {
   from: emailField.optional(),
   template: templateField.optional(),
   templateId: templateField.optional(),
-  data: Joi.object().optional().default({}),
+  data: Joi.object().unknown(true).optional().default({}),
   idempotencyKey: Joi.string().alphanum().min(1).max(255).optional(),
   cc: Joi.alternatives().try(emailField, Joi.array().items(emailField)).optional(),
   bcc: Joi.alternatives().try(emailField, Joi.array().items(emailField)).optional(),

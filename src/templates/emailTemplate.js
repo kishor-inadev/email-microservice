@@ -340,7 +340,7 @@ const buildEmailHTML = (opts = {}) => {
 
                 ${review ? renderReview(review) : ''}
 
-                ${primaryCTA ? `<div class="cta"><a href="${primaryCTA.url}" style="color:#fff" class="btn-primary" ${a11y}>${esc(primaryCTA.text)}</a>${secondaryCTA ? `<a href="${secondaryCTA.url}" class="btn-secondary" ${a11y}>${esc(secondaryCTA.text)}</a>` : ''}</div>` : ''}
+                ${primaryCTA ? `<div class="cta" style="margin-top:18px;"><a href="${primaryCTA.url}" style="display:inline-block;padding:12px 22px;border-radius:8px;background:${esc(primaryCTA?.color || headerBg)};color:#fff;text-decoration:none;font-weight:700;font-size:15px;" class="btn-primary" ${a11y}>${esc(primaryCTA.text)}</a>${secondaryCTA ? `<a href="${secondaryCTA.url}" style="display:inline-block;padding:10px 18px;border-radius:8px;background:transparent;color:${esc(headerBg)};text-decoration:none;border:1px solid #e5e7eb;font-weight:700;font-size:14px;margin-left:10px;" class="btn-secondary" ${a11y}>${esc(secondaryCTA.text)}</a>` : ''}</div>` : ''}
 
                 ${showDivider && (cards.length || invoice || security || review) ? `<hr class="divider"/>` : ''}
                 ${renderSocial(social)}
@@ -441,6 +441,11 @@ const CONTACT_NOTIFICATION = ({
   };
 };
 
+/**
+ * USER_CREATED — System/admin notification that a new account was created.
+ * Sent to admins or used internally. Original contract preserved.
+ * Variables: { userId, username, email, timestamp }
+ */
 const USER_CREATED = ({ userId, username, email, timestamp }) => {
   return {
     subject: `New User Account Created`,
@@ -456,7 +461,7 @@ const USER_CREATED = ({ userId, username, email, timestamp }) => {
         <p style="margin:0 0 16px 0;color:#4b5563;">
           A new user account has been created.
         </p>
-        
+
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Account Details:</strong><br/>
@@ -465,7 +470,7 @@ const USER_CREATED = ({ userId, username, email, timestamp }) => {
             <span style="color:#6b7280;">Created:</span> <strong style="color:#111827;">${new Date(timestamp).toLocaleString()}</strong>
           </td></tr>
         </table>
-        
+
         <p style="margin:24px 0 0 0;color:#4b5563;">
           Welcome to our platform! Get started by completing your profile.
         </p>
@@ -474,6 +479,87 @@ const USER_CREATED = ({ userId, username, email, timestamp }) => {
         url: `${appUrl + '/dashboard/users'}`,
         text: 'Go to Dashboard',
         color: '#10b981'
+      },
+      footerNote: null
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * USER_WELCOME — User-facing welcome + email verification email.
+ * Sent to the user immediately after self-registration.
+ * Variables: { userId, username, email, verifyLink, timestamp }
+ */
+const USER_WELCOME = ({ userId, username, email, verifyLink, timestamp }) => {
+  return {
+    subject: `Welcome! Please verify your email address`,
+    html: buildEmailHTML({
+      preheader: `Hi ${username || 'there'}, one quick step to activate your account.`,
+      title: 'Welcome — Verify Your Email',
+      headerBg: '#10b981',
+      headerText: '👋 Welcome Aboard!',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hi <strong>${username || 'there'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Thanks for signing up! To get started, please verify your email address by clicking the button below.
+        </p>
+        <p style="margin:0 0 16px 0;color:#6b7280;font-size:13px;">
+          This link will expire in <strong>24 hours</strong>. If you didn\'t create this account, you can safely ignore this email.
+        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px 20px;background:#f0fdf4;border-left:4px solid #10b981;border-radius:4px;">
+          <tr><td style="font-size:13px;line-height:20px;color:#065f46;">
+            <strong>Your account details:</strong><br/>
+            Email: <strong>${email}</strong><br/>
+            Registered: <strong>${timestamp ? new Date(timestamp).toLocaleString() : new Date().toLocaleString()}</strong>
+          </td></tr>
+        </table>
+      `,
+      ctaButton: {
+        url: verifyLink,
+        text: 'Verify Email Address',
+        color: '#10b981'
+      },
+      footerNote: 'If the button doesn\'t work, copy and paste this link into your browser: ' + verifyLink
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * ADMIN_USER_REGISTERED — Admin notification when a new user registers.
+ * Variables: { userId, username, email, registeredAt, ipAddress }
+ */
+const ADMIN_USER_REGISTERED = ({ userId, username, email, registeredAt, ipAddress }) => {
+  return {
+    subject: `New user registered: ${email}`,
+    html: buildEmailHTML({
+      preheader: `A new user (${email}) has just created an account.`,
+      title: 'New User Registration',
+      headerBg: '#6366f1',
+      headerText: '🆕 New User Registered',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">Hello,</p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          A new user has registered on your platform.
+        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:24px;">
+            <strong style="color:#111827;">Registration Details:</strong><br/>
+            <span style="color:#6b7280;">User ID:</span> <strong style="color:#111827;">${userId || 'N/A'}</strong><br/>
+            <span style="color:#6b7280;">Username:</span> <strong style="color:#111827;">${username || 'N/A'}</strong><br/>
+            <span style="color:#6b7280;">Email:</span> <strong style="color:#111827;">${email}</strong><br/>
+            <span style="color:#6b7280;">Registered at:</span> <strong style="color:#111827;">${registeredAt ? new Date(registeredAt).toLocaleString() : new Date().toLocaleString()}</strong><br/>
+            <span style="color:#6b7280;">IP Address:</span> <strong style="color:#111827;">${ipAddress || 'Unknown'}</strong>
+          </td></tr>
+        </table>
+      `,
+      ctaButton: {
+        url: `${appUrl + '/dashboard/users'}`,
+        text: 'View in Dashboard',
+        color: '#6366f1'
       },
       footerNote: null
     }),
@@ -758,7 +844,8 @@ const PERMISSION_CHANGED = ({ username, roleName, permissions, changedBy }) => {
  * PASSWORD_CHANGED Email Template
  * Sent when: Your password has been changed successfully.
  */
-const PASSWORD_CHANGED = ({ username, appUrl }) => {
+const PASSWORD_CHANGED = ({ name, username }) => {
+  const displayName = name || username || 'User';
   return {
     subject: `Password Changed Successfully`,
     html: buildEmailHTML({
@@ -768,7 +855,7 @@ const PASSWORD_CHANGED = ({ username, appUrl }) => {
       headerText: '🔒 Password Changed',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
           Your password has been changed successfully.
@@ -777,7 +864,7 @@ const PASSWORD_CHANGED = ({ username, appUrl }) => {
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;color:#92400e;">
             <strong>If this wasn't you</strong><br/>
-            Please contact support immediately to secure your account.
+            Please contact our support team immediately to secure your account.
           </td></tr>
         </table>
         
@@ -785,7 +872,7 @@ const PASSWORD_CHANGED = ({ username, appUrl }) => {
           Your account security is our top priority.
         </p>
       `,
-      ctaButton: null,
+      ctaButton: { url: appUrl + '/settings/security', text: 'Review Security Settings', color: '#10b981' },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -796,43 +883,33 @@ const PASSWORD_CHANGED = ({ username, appUrl }) => {
  * PASSWORD_RESET_REQUESTED Email Template
  * Sent when: We received a request to reset your password.
  */
-const PASSWORD_RESET_REQUESTED = ({ username, resetToken, resetUrl }) => {
+const PASSWORD_RESET_REQUESTED = ({ name, username, resetLink, resetToken, resetUrl, expiryHours = 1 }) => {
+  const displayName = name || username || 'User';
+  const ctaUrl = resetLink || resetUrl || (appUrl + '/auth/reset-password/' + resetToken);
   return {
-    subject: `Password Reset Request`,
+    subject: `Reset Your Password`,
     html: buildEmailHTML({
-      preheader: `We received a request to reset your password.`,
-      title: 'Password Reset Request',
+      preheader: `We received a request to reset your password. Click to set a new one.`,
+      title: 'Reset Your Password',
       headerBg: '#ef4444',
       headerText: '🔑 Reset Your Password',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We received a request to reset your password.
+          We received a request to reset the password for your account. Click the button below to choose a new password.
         </p>
-        
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:32px 0;">
-          <tr><td align="center">
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-              <tr><td align="center" style="border-radius:6px;background:#ef4444;">
-                <a href="${resetUrl || appUrl + '/auth/reset-password/' + resetToken}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">
-                  Reset Password
-                </a>
-              </td></tr>
-            </table>
-          </td></tr>
-        </table>
-        
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;color:#92400e;">
             <strong>⚠️ Security Notice</strong><br/>
-            This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email or contact support.
+            This link expires in <strong>${expiryHours} hour${expiryHours !== 1 ? 's' : ''}</strong>.
+            If you didn't request this, you can safely ignore this email — your password will not be changed.
           </td></tr>
         </table>
       `,
-      ctaButton: null,
-      footerNote: "Never share your credentials. We'll never ask for your password."
+      ctaButton: { url: ctaUrl, text: 'Reset Password', color: '#ef4444' },
+      footerNote: `If the button doesn't work, copy and paste this link into your browser:<br/><span style="word-break:break-all">${ctaUrl}</span>`
     }),
     attachments: []
   };
@@ -842,38 +919,30 @@ const PASSWORD_RESET_REQUESTED = ({ username, resetToken, resetUrl }) => {
  * PASSWORD_RESET_COMPLETED Email Template
  * Sent when: Your password has been reset successfully.
  */
-const PASSWORD_RESET_COMPLETED = ({ username, resetToken, resetUrl }) => {
+const PASSWORD_RESET_COMPLETED = ({ name, username }) => {
+  const displayName = name || username || 'User';
   return {
-    subject: `Password Reset Completed`,
+    subject: `Password Reset Successful`,
     html: buildEmailHTML({
-      preheader: `Your password has been reset successfully.`,
-      title: 'Password Reset Completed',
+      preheader: `Your password has been reset successfully. Sign in with your new password.`,
+      title: 'Password Reset Successful',
       headerBg: '#10b981',
-      headerText: '✅ Password Reset Completed',
+      headerText: '✅ Password Reset Successful',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your password has been reset successfully.
+          Your password has been reset successfully. You can now sign in with your new password.
         </p>
-        
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;color:#92400e;">
             <strong>If this wasn't you</strong><br/>
-            Please contact support immediately to secure your account.
+            Please contact our support team immediately to secure your account.
           </td></tr>
         </table>
-        
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Your account security is our top priority.
-        </p>
       `,
-      ctaButton: {
-        url: `${appUrl + '/dashboard'}`,
-        text: 'Go to Dashboard',
-        color: '#10b981'
-      },
+      ctaButton: { url: appUrl + '/login', text: 'Sign In Now', color: '#10b981' },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -922,34 +991,31 @@ const PASSWORD_EXPIRED = ({ username, resetToken, resetUrl }) => {
  * EMAIL_VERIFIED Email Template
  * Sent when: Your email address has been verified successfully.
  */
-const EMAIL_VERIFIED = ({ username, verifiedItem }) => {
+const EMAIL_VERIFIED = ({ name, username, verifiedItem }) => {
+  const displayName = name || username || 'User';
   return {
     subject: `Email Verified Successfully`,
     html: buildEmailHTML({
-      preheader: `Your email address has been verified successfully.`,
-      title: 'Email Verified Successfully',
+      preheader: `Your email address has been verified successfully. You now have full access.`,
+      title: 'Email Verified',
       headerBg: '#10b981',
-      headerText: '✉️ Email Verified',
+      headerText: '✉️ Email Verified!',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your email address has been verified successfully.
+          Great news — your email address has been verified successfully!
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#d1fae5;border-left:4px solid #10b981;border-radius:4px;">
           <tr><td style="font-size:14px;color:#065f46;">
             <strong>✓ Verification Complete</strong><br/>
-            ${verifiedItem ? `Your ${verifiedItem} has been verified successfully.` : 'Your information has been verified.'}
+            ${verifiedItem ? `Your ${verifiedItem} has been verified successfully.` : 'Your account is now fully active and you have access to all features.'}
           </td></tr>
         </table>
-        
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          You now have full access to all features.
-        </p>
       `,
-      ctaButton: null,
+      ctaButton: { url: appUrl + '/login', text: 'Sign In to Your Account', color: '#10b981' },
       footerNote: null
     }),
     attachments: []
@@ -1108,17 +1174,20 @@ const LOGIN_SUCCESS = ({ username, ipAddress, location, device, timestamp }) => 
  * LOGIN_FAILED Email Template
  * Sent when: We detected a failed login attempt on your account.
  */
-const LOGIN_FAILED = ({ username, ipAddress, location, device, timestamp }) => {
+const LOGIN_FAILED = ({ name, username, ip, ipAddress, location, device, time, timestamp }) => {
+  const displayName = name || username || 'User';
+  const displayIp = ip || ipAddress || 'Unknown';
+  const displayTime = time || timestamp;
   return {
-    subject: `Failed Login Attempt`,
+    subject: `Failed Login Attempt Detected`,
     html: buildEmailHTML({
       preheader: `We detected a failed login attempt on your account.`,
       title: 'Failed Login Attempt',
       headerBg: '#dc2626',
-      headerText: '⚠️ Login Failed',
+      headerText: '⚠️ Failed Login Attempt',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
           We detected a failed login attempt on your account.
@@ -1126,26 +1195,22 @@ const LOGIN_FAILED = ({ username, ipAddress, location, device, timestamp }) => {
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
-            <strong style="color:#111827;">Login Details:</strong><br/>
-            <span style="color:#6b7280;">IP Address:</span> <strong style="color:#111827;">${ipAddress || 'Unknown'}</strong><br/>
-            <span style="color:#6b7280;">Location:</span> <strong style="color:#111827;">${location || 'Unknown'}</strong><br/>
-            <span style="color:#6b7280;">Device:</span> <strong style="color:#111827;">${device || 'Unknown'}</strong><br/>
-            <span style="color:#6b7280;">Time:</span> <strong style="color:#111827;">${new Date(timestamp).toLocaleString()}</strong>
+            <strong style="color:#111827;">Attempt Details:</strong><br/>
+            <span style="color:#6b7280;">IP Address:</span> <strong style="color:#111827;">${displayIp}</strong><br/>
+            ${location ? `<span style="color:#6b7280;">Location:</span> <strong style="color:#111827;">${location}</strong><br/>` : ''}
+            ${device ? `<span style="color:#6b7280;">Device:</span> <strong style="color:#111827;">${device}</strong><br/>` : ''}
+            <span style="color:#6b7280;">Time:</span> <strong style="color:#111827;">${displayTime ? new Date(displayTime).toLocaleString() : 'Just now'}</strong>
           </td></tr>
         </table>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;color:#7f1d1d;">
             <strong>If this wasn't you</strong><br/>
-            Secure your account immediately by changing your password.
+            Secure your account immediately by resetting your password.
           </td></tr>
         </table>
       `,
-      ctaButton: {
-        url: `${appUrl + '/security'}`,
-        text: 'Review Activity',
-        color: '#dc2626'
-      },
+      ctaButton: { url: appUrl + '/settings/security', text: 'Secure My Account', color: '#dc2626' },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -1156,44 +1221,43 @@ const LOGIN_FAILED = ({ username, ipAddress, location, device, timestamp }) => {
  * NEW_DEVICE_LOGIN Email Template
  * Sent when: Your account was accessed from a new device.
  */
-const NEW_DEVICE_LOGIN = ({ username, ipAddress, location, device, timestamp }) => {
+const NEW_DEVICE_LOGIN = ({ name, username, ip, ipAddress, location, device, time, timestamp }) => {
+  const displayName = name || username || 'User';
+  const displayIp = ip || ipAddress || 'Unknown';
+  const displayTime = time || timestamp;
   return {
     subject: `New Device Login Detected`,
     html: buildEmailHTML({
-      preheader: `Your account was accessed from a new device.`,
-      title: 'New Device Login Detected',
+      preheader: `Your account was accessed from a new device or location.`,
+      title: 'New Device Login',
       headerBg: '#f59e0b',
-      headerText: '🔔 New Device Login',
+      headerText: '🔔 New Device Login Detected',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your account was accessed from a new device.
+          We noticed a sign-in to your account from a new device or location.
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Login Details:</strong><br/>
-            <span style="color:#6b7280;">IP Address:</span> <strong style="color:#111827;">${ipAddress || 'Unknown'}</strong><br/>
-            <span style="color:#6b7280;">Location:</span> <strong style="color:#111827;">${location || 'Unknown'}</strong><br/>
-            <span style="color:#6b7280;">Device:</span> <strong style="color:#111827;">${device || 'Unknown'}</strong><br/>
-            <span style="color:#6b7280;">Time:</span> <strong style="color:#111827;">${new Date(timestamp).toLocaleString()}</strong>
+            <span style="color:#6b7280;">IP Address:</span> <strong style="color:#111827;">${displayIp}</strong><br/>
+            ${location ? `<span style="color:#6b7280;">Location:</span> <strong style="color:#111827;">${location}</strong><br/>` : ''}
+            ${device ? `<span style="color:#6b7280;">Device:</span> <strong style="color:#111827;">${device}</strong><br/>` : ''}
+            <span style="color:#6b7280;">Time:</span> <strong style="color:#111827;">${displayTime ? new Date(displayTime).toLocaleString() : 'Just now'}</strong>
           </td></tr>
         </table>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;color:#7f1d1d;">
             <strong>If this wasn't you</strong><br/>
-            Secure your account immediately by changing your password.
+            Secure your account immediately by resetting your password and reviewing active sessions.
           </td></tr>
         </table>
       `,
-      ctaButton: {
-        url: `${appUrl + '/security'}`,
-        text: 'Review Activity',
-        color: '#f59e0b'
-      },
+      ctaButton: { url: appUrl + '/settings/security', text: 'Secure My Account', color: '#f59e0b' },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -1204,38 +1268,38 @@ const NEW_DEVICE_LOGIN = ({ username, ipAddress, location, device, timestamp }) 
  * ACCOUNT_LOCKED Email Template
  * Sent when: Your account has been locked for security reasons.
  */
-const ACCOUNT_LOCKED = ({ username, accountId, reason, supportUrl }) => {
+const ACCOUNT_LOCKED = ({ name, username, maxAttempts, reason, supportUrl }) => {
+  const displayName = name || username || 'User';
+  const lockReason = maxAttempts
+    ? `Too many failed login attempts (${maxAttempts} attempts exceeded).`
+    : (reason || 'Suspicious activity detected on your account.');
   return {
-    subject: `Account Locked`,
+    subject: `Your Account Has Been Locked`,
     html: buildEmailHTML({
-      preheader: `Your account has been locked for security reasons.`,
+      preheader: `Your account has been temporarily locked for security reasons.`,
       title: 'Account Locked',
       headerBg: '#dc2626',
-      headerText: '🔒 Account Locked',
+      headerText: '🔒 Account Temporarily Locked',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your account has been locked for security reasons.
+          Your account has been temporarily locked for security reasons.
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;color:#7f1d1d;">
             <strong>Reason:</strong><br/>
-            ${reason || 'Policy violation or security concern'}
+            ${lockReason}
           </td></tr>
         </table>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          If you believe this is a mistake, please contact our support team.
+        <p style="margin:16px 0 0 0;color:#4b5563;">
+          To unlock your account, use the button below to submit an unlock request. If you believe this is a mistake, contact our support team.
         </p>
       `,
-      ctaButton: {
-        url: `${supportUrl || appUrl + '/support'}`,
-        text: 'Contact Support',
-        color: '#dc2626'
-      },
+      ctaButton: { url: supportUrl || (appUrl + '/account/unlock'), text: 'Request Account Unlock', color: '#dc2626' },
       footerNote: 'If you need assistance, our support team is here to help.'
     }),
     attachments: []
@@ -1246,9 +1310,10 @@ const ACCOUNT_LOCKED = ({ username, accountId, reason, supportUrl }) => {
  * ACCOUNT_UNLOCKED Email Template
  * Sent when: Your account has been unlocked and is now accessible.
  */
-const ACCOUNT_UNLOCKED = ({ username, accountId, reason, supportUrl }) => {
+const ACCOUNT_UNLOCKED = ({ name, username }) => {
+  const displayName = name || username || 'User';
   return {
-    subject: `Account Unlocked`,
+    subject: `Account Unlocked — You Can Now Sign In`,
     html: buildEmailHTML({
       preheader: `Your account has been unlocked and is now accessible.`,
       title: 'Account Unlocked',
@@ -1256,21 +1321,20 @@ const ACCOUNT_UNLOCKED = ({ username, accountId, reason, supportUrl }) => {
       headerText: '🔓 Account Unlocked',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your account has been unlocked and is now accessible.
+          Your account has been successfully unlocked. You can now sign in as normal.
         </p>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          This notification is for your records. No action is required unless specified.
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#d1fae5;border-left:4px solid #10b981;border-radius:4px;">
+          <tr><td style="font-size:14px;color:#065f46;">
+            <strong>✓ Access Restored</strong><br/>
+            To prevent future lockouts, make sure to use the correct credentials when signing in.
+          </td></tr>
+        </table>
       `,
-      ctaButton: {
-        url: `${appUrl + '/dashboard'}`,
-        text: 'Go to Dashboard',
-        color: '#10b981'
-      },
+      ctaButton: { url: appUrl + '/login', text: 'Sign In Now', color: '#10b981' },
       footerNote: null
     }),
     attachments: []
@@ -1281,32 +1345,33 @@ const ACCOUNT_UNLOCKED = ({ username, accountId, reason, supportUrl }) => {
  * ACCOUNT_RECOVERY_REQUESTED Email Template
  * Sent when: We received a request to recover your account.
  */
-const ACCOUNT_RECOVERY_REQUESTED = ({ username, accountId, reason, supportUrl }) => {
+const ACCOUNT_RECOVERY_REQUESTED = ({ name, username, unlockLink, expiryHours = 1, accountId, reason, supportUrl }) => {
+  const displayName = name || username || 'User';
+  const ctaUrl = unlockLink || supportUrl || (appUrl + '/account/unlock');
   return {
-    subject: `Account Recovery Request`,
+    subject: `Account Unlock Request`,
     html: buildEmailHTML({
-      preheader: `We received a request to recover your account.`,
-      title: 'Account Recovery Request',
+      preheader: `We received a request to unlock your account. Click the button to confirm.`,
+      title: 'Account Unlock Request',
       headerBg: '#f59e0b',
-      headerText: '🔄 Account Recovery',
+      headerText: '🔄 Account Unlock Request',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We received a request to recover your account.
+          We received a request to unlock your account. Click the button below to confirm and regain access.
         </p>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          This notification is for your records. No action is required unless specified.
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
+          <tr><td style="font-size:14px;color:#92400e;">
+            <strong>⚠️ This link expires in ${expiryHours} hour${expiryHours !== 1 ? 's' : ''}</strong><br/>
+            If you didn't request this, you can safely ignore this email.
+          </td></tr>
+        </table>
       `,
-      ctaButton: {
-        url: `${supportUrl || appUrl + '/account-recovery'}`,
-        text: 'Contact Support',
-        color: '#f59e0b'
-      },
-      footerNote: null
+      ctaButton: { url: ctaUrl, text: 'Unlock My Account', color: '#f59e0b' },
+      footerNote: `If the button doesn't work, copy and paste this link into your browser:<br/><span style="word-break:break-all">${ctaUrl}</span>`
     }),
     attachments: []
   };
@@ -1459,28 +1524,37 @@ const ACCOUNT_MERGED = ({ username, accountId, reason, supportUrl }) => {
  * ACCOUNT_TERMINATED Email Template
  * Sent when: Your account has been permanently terminated.
  */
-const ACCOUNT_TERMINATED = ({ username, accountId, reason, supportUrl }) => {
+const ACCOUNT_TERMINATED = ({ name, username, accountId, reason, supportUrl }) => {
+  const displayName = name || username || 'User';
   return {
-    subject: `Account Terminated`,
+    subject: `Your Account Has Been Closed`,
     html: buildEmailHTML({
-      preheader: `Your account has been permanently terminated.`,
-      title: 'Account Terminated',
+      preheader: `Your account has been permanently closed.`,
+      title: 'Account Closed',
       headerBg: '#dc2626',
-      headerText: '❌ Account Terminated',
+      headerText: '❌ Account Closed',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your account has been permanently terminated.
+          Your account has been permanently closed and all associated data has been scheduled for removal.
         </p>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          This notification is for your records. No action is required unless specified.
+        ${reason ? `
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
+          <tr><td style="font-size:14px;color:#7f1d1d;">
+            <strong>Reason:</strong><br/>${reason}
+          </td></tr>
+        </table>
+        ` : ''}
+        
+        <p style="margin:16px 0 0 0;color:#4b5563;">
+          If you believe this was done in error, please contact our support team as soon as possible.
         </p>
       `,
       ctaButton: null,
-      footerNote: 'This action is permanent and cannot be undone.'
+      footerNote: 'This action is permanent. Please contact support if you have any questions.'
     }),
     attachments: []
   };
@@ -1490,34 +1564,38 @@ const ACCOUNT_TERMINATED = ({ username, accountId, reason, supportUrl }) => {
  * SOCIAL_LOGIN_CONNECTED Email Template
  * Sent when: A social login account has been connected.
  */
-const SOCIAL_LOGIN_CONNECTED = ({ username, provider, email }) => {
+const SOCIAL_LOGIN_CONNECTED = ({ name, username, provider, email, time, timestamp }) => {
+  const displayName = name || username || 'User';
+  const displayTime = time || timestamp;
   return {
-    subject: `Social Account Connected`,
+    subject: `${provider || 'Social'} Account Connected`,
     html: buildEmailHTML({
-      preheader: `A social login account has been connected.`,
+      preheader: `Your ${provider || 'social'} account has been connected successfully.`,
       title: 'Social Account Connected',
       headerBg: '#10b981',
       headerText: '🔗 Account Connected',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          A social login account has been connected.
+          Your <strong>${provider || 'social'}</strong> account has been successfully connected.
+          You can now use it to sign in quickly.
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Provider:</strong> <span style="color:#8b5cf6;">${provider || 'Social Account'}</span><br/>
-            <strong style="color:#111827;">Email:</strong> ${email || 'N/A'}
+            ${email ? `<strong style="color:#111827;">Account Email:</strong> ${email}<br/>` : ''}
+            ${displayTime ? `<strong style="color:#111827;">Connected:</strong> ${new Date(displayTime).toLocaleString()}<br/>` : ''}
           </td></tr>
         </table>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          You can now use this account to sign in quickly.
+        <p style="margin:0 0 0 0;color:#4b5563;">
+          If you didn't connect this account, please review your linked accounts immediately.
         </p>
       `,
-      ctaButton: null,
+      ctaButton: { url: appUrl + '/settings/security', text: 'Manage Connected Accounts', color: '#10b981' },
       footerNote: null
     }),
     attachments: []
@@ -1528,34 +1606,37 @@ const SOCIAL_LOGIN_CONNECTED = ({ username, provider, email }) => {
  * SOCIAL_LOGIN_DISCONNECTED Email Template
  * Sent when: A social login account has been disconnected.
  */
-const SOCIAL_LOGIN_DISCONNECTED = ({ username, provider, email }) => {
+const SOCIAL_LOGIN_DISCONNECTED = ({ name, username, provider, email, time, timestamp }) => {
+  const displayName = name || username || 'User';
+  const displayTime = time || timestamp;
   return {
-    subject: `Social Account Disconnected`,
+    subject: `${provider || 'Social'} Account Disconnected`,
     html: buildEmailHTML({
-      preheader: `A social login account has been disconnected.`,
+      preheader: `Your ${provider || 'social'} account has been disconnected.`,
       title: 'Social Account Disconnected',
       headerBg: '#f59e0b',
       headerText: '🔌 Account Disconnected',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          A social login account has been disconnected.
+          Your <strong>${provider || 'social'}</strong> account has been disconnected from your profile.
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:20px;">
             <strong style="color:#111827;">Provider:</strong> <span style="color:#8b5cf6;">${provider || 'Social Account'}</span><br/>
-            <strong style="color:#111827;">Email:</strong> ${email || 'N/A'}
+            ${email ? `<strong style="color:#111827;">Account Email:</strong> ${email}<br/>` : ''}
+            ${displayTime ? `<strong style="color:#111827;">Disconnected:</strong> ${new Date(displayTime).toLocaleString()}<br/>` : ''}
           </td></tr>
         </table>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          You can now use this account to sign in quickly.
+        <p style="margin:0 0 0 0;color:#4b5563;">
+          If you didn't do this, please review your security settings immediately.
         </p>
       `,
-      ctaButton: null,
+      ctaButton: { url: appUrl + '/settings/security', text: 'Review Security Settings', color: '#f59e0b' },
       footerNote: null
     }),
     attachments: []
@@ -1566,36 +1647,35 @@ const SOCIAL_LOGIN_DISCONNECTED = ({ username, provider, email }) => {
  * MFA_ENABLED Email Template
  * Sent when: Two-factor authentication has been enabled on your account.
  */
-const MFA_ENABLED = ({ username, device, timestamp }) => {
+const MFA_ENABLED = ({ name, username, device, time, timestamp }) => {
+  const displayName = name || username || 'User';
+  const displayTime = time || timestamp;
   return {
     subject: `Two-Factor Authentication Enabled`,
     html: buildEmailHTML({
-      preheader: `Two-factor authentication has been enabled on your account.`,
+      preheader: `Two-factor authentication has been successfully enabled on your account.`,
       title: 'Two-Factor Authentication Enabled',
       headerBg: '#10b981',
-      headerText: '🔐 MFA Enabled',
+      headerText: '🔐 2FA Enabled',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Two-factor authentication has been enabled on your account.
+          Two-factor authentication (2FA) has been successfully enabled on your account.
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#d1fae5;border-left:4px solid #10b981;border-radius:4px;">
           <tr><td style="font-size:14px;color:#065f46;">
             <strong>✓ Security Enhanced</strong><br/>
-            Two-factor authentication adds an extra layer of security to your account.
+            Your account now has an extra layer of protection. You'll need your authenticator app each time you sign in.
           </td></tr>
         </table>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Device: <strong style="color:#111827;">${device || 'Unknown'}</strong><br/>
-          Time: <strong style="color:#111827;">${new Date(timestamp).toLocaleString()}</strong>
-        </p>
+        ${displayTime ? `<p style="margin:16px 0 0 0;color:#6b7280;font-size:13px;">Enabled on: <strong>${new Date(displayTime).toLocaleString()}</strong>${device ? ` from ${device}` : ''}</p>` : ''}
       `,
       ctaButton: null,
-      footerNote: "Never share your credentials. We'll never ask for your password."
+      footerNote: "Never share your credentials. We'll never ask for your 2FA code."
     }),
     attachments: []
   };
@@ -1605,39 +1685,38 @@ const MFA_ENABLED = ({ username, device, timestamp }) => {
  * MFA_DISABLED Email Template
  * Sent when: Two-factor authentication has been disabled.
  */
-const MFA_DISABLED = ({ username, device, timestamp }) => {
+const MFA_DISABLED = ({ name, username, device, time, timestamp }) => {
+  const displayName = name || username || 'User';
+  const displayTime = time || timestamp;
   return {
     subject: `Two-Factor Authentication Disabled`,
     html: buildEmailHTML({
-      preheader: `Two-factor authentication has been disabled.`,
+      preheader: `Two-factor authentication has been disabled on your account.`,
       title: 'Two-Factor Authentication Disabled',
       headerBg: '#f59e0b',
-      headerText: '⚠️ MFA Disabled',
+      headerText: '⚠️ 2FA Disabled',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Two-factor authentication has been disabled.
+          Two-factor authentication (2FA) has been disabled on your account.
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;color:#92400e;">
             <strong>⚠️ Security Reduced</strong><br/>
-            Two-factor authentication adds an extra layer of security to your account.
+            Your account is now less secure. We strongly recommend re-enabling two-factor authentication.
           </td></tr>
         </table>
         
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Device: <strong style="color:#111827;">${device || 'Unknown'}</strong><br/>
-          Time: <strong style="color:#111827;">${new Date(timestamp).toLocaleString()}</strong>
+        ${displayTime ? `<p style="margin:8px 0 16px 0;color:#6b7280;font-size:13px;">Disabled on: <strong>${new Date(displayTime).toLocaleString()}</strong>${device ? ` from ${device}` : ''}</p>` : ''}
+        
+        <p style="margin:0 0 0 0;color:#4b5563;">
+          If you didn't make this change, please secure your account immediately.
         </p>
       `,
-      ctaButton: {
-        url: `${appUrl + '/settings'}`,
-        text: 'Enable MFA',
-        color: '#f59e0b'
-      },
+      ctaButton: { url: appUrl + '/settings/security', text: 'Re-enable 2FA', color: '#f59e0b' },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -2782,18 +2861,24 @@ const ORG_COMPLIANCE_AUDIT_COMPLETED = ({
 /**
  * otpEmailTemplate - Your One-Time Password (OTP)
  */
-const otpEmailTemplate = ({ username, otp, expiryMinutes = 10 }) => {
+const otpEmailTemplate = ({ name, username, otp, purpose = 'verification', expiryMinutes = 10 }) => {
+  const displayName = name || username || 'User';
+  const purposeLabel = purpose === 'login' ? 'sign in'
+    : purpose === 'mfa' ? 'two-factor authentication'
+    : purpose === 'reset' ? 'password reset'
+    : purpose === 'verification' ? 'email verification'
+    : purpose;
   return {
-    subject: `Your One-Time Password: ${otp}`,
+    subject: `Your one-time code: ${otp}`,
     html: buildEmailHTML({
       preheader: `Your OTP is ${otp}. Valid for ${expiryMinutes} minutes. Do not share it.`,
-      title: 'Your One-Time Password',
+      title: 'Your One-Time Code',
       headerBg: '#7c3aed',
       headerText: '🔐 Your Verification Code',
       bodyHTML: `
-        <p style="margin:0 0 16px 0;">Hello <strong>${username || 'User'}</strong>,</p>
+        <p style="margin:0 0 16px 0;">Hello <strong>${displayName}</strong>,</p>
         <p style="margin:0 0 20px 0;color:#4b5563;">
-          Use the code below to complete your verification. It is valid for <strong>${expiryMinutes} minutes</strong>.
+          Use the code below to complete your <strong>${purposeLabel}</strong>. It is valid for <strong>${expiryMinutes} minutes</strong>.
         </p>
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:28px 0;">
@@ -2806,7 +2891,7 @@ const otpEmailTemplate = ({ username, otp, expiryMinutes = 10 }) => {
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:16px 0;padding:14px 18px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
           <tr><td style="font-size:13px;color:#92400e;">
-            ⏰ This code expires in <strong>${expiryMinutes} minutes</strong>. Never share it with anyone.
+            ⏰ This code expires in <strong>${expiryMinutes} minutes</strong>. Never share it with anyone — not even our support team.
           </td></tr>
         </table>
 
@@ -4131,31 +4216,55 @@ const birthdayGreetingTemplate = ({ username, discountCode }) => {
 /**
  * twoFactorSetupTemplate - Set Up Two-Factor Authentication
  */
-const twoFactorSetupTemplate = ({ username, setupLink }) => {
+const twoFactorSetupTemplate = ({ name, username, qrCodeUrl, setupLink, secret }) => {
+  const displayName = name || username || 'User';
   return {
     subject: `Set Up Two-Factor Authentication`,
     html: buildEmailHTML({
-      preheader: `Set Up Two-Factor Authentication`,
+      preheader: `Scan the QR code to activate two-factor authentication on your account.`,
       title: 'Set Up Two-Factor Authentication',
       headerBg: '#7c3aed',
-      headerText: '🔐 Set Up Two-Factor Authentication',
+      headerText: '🔐 Enable Two-Factor Authentication',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+          You've started setting up two-factor authentication (2FA). Follow the steps below to complete setup.
         </p>
 
-        <!-- Add dynamic content here based on parameters -->
-
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
+        <p style="margin:0 0 12px 0;color:#111827;font-weight:600;">Step 1: Scan the QR Code</p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Open your authenticator app (Google Authenticator, Authy, etc.) and scan the QR code below:
         </p>
+
+        ${qrCodeUrl ? `
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:16px 0;">
+          <tr><td align="center" style="padding:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+            <img src="${qrCodeUrl}" alt="2FA QR Code" width="180" height="180" style="display:block;margin:0 auto;" />
+          </td></tr>
+        </table>
+        ` : ''}
+
+        ${secret ? `
+        <p style="margin:16px 0 8px 0;color:#111827;font-weight:600;">Step 2: Or enter the code manually</p>
+        <p style="margin:0 0 8px 0;color:#4b5563;">If you can't scan the QR code, enter this secret key in your authenticator app:</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:8px 0;">
+          <tr><td align="center" style="padding:16px;background:#f3f4f6;border-radius:8px;">
+            <code style="font-size:18px;font-weight:700;letter-spacing:4px;color:#7c3aed;font-family:'Courier New',monospace;">${secret}</code>
+          </td></tr>
+        </table>
+        ` : ''}
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
+          <tr><td style="font-size:14px;color:#92400e;">
+            <strong>💾 Save your backup codes</strong><br/>
+            After setup, save your backup codes in a safe place. You'll need them if you lose access to your authenticator.
+          </td></tr>
+        </table>
       `,
-      ctaButton: null,
-      footerNote: null
+      ctaButton: setupLink ? { url: setupLink, text: 'Complete 2FA Setup', color: '#7c3aed' } : null,
+      footerNote: "Never share your 2FA secret or backup codes with anyone."
     }),
     attachments: []
   };
@@ -4231,31 +4340,44 @@ const twoFactorCodeTemplate = ({ username, code }) => {
 /**
  * backupCodesTemplate - Your Backup Login Codes
  */
-const backupCodesTemplate = ({ username, codes }) => {
+const backupCodesTemplate = ({ name, username, codes = [] }) => {
+  const displayName = name || username || 'User';
+  const codeRows = Array.isArray(codes)
+    ? codes.map(c => `<tr><td style="padding:6px 16px;font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:3px;color:#1e1b4b;">${c}</td></tr>`).join('')
+    : '';
   return {
-    subject: `Your Backup Login Codes`,
+    subject: `Your 2FA Backup Codes`,
     html: buildEmailHTML({
-      preheader: `Your Backup Login Codes`,
-      title: 'Your Backup Login Codes',
+      preheader: `Save these backup codes somewhere safe — you'll need them if you lose your authenticator.`,
+      title: 'Your Backup Codes',
       headerBg: '#7c3aed',
       headerText: '🔐 Your Backup Login Codes',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Please use the verification code below to continue.
+          Here are your two-factor authentication backup codes. Each code can only be used <strong>once</strong>.
+          Store them somewhere safe — you'll need one if you ever lose access to your authenticator app.
         </p>
 
-        <!-- Add dynamic content here based on parameters -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:24px auto;background:#f5f3ff;border:2px solid #7c3aed;border-radius:8px;overflow:hidden;">
+          <tbody>
+            ${codeRows || '<tr><td style="padding:12px 16px;color:#6b7280;">No codes provided.</td></tr>'}
+          </tbody>
+        </table>
 
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
+          <tr><td style="font-size:14px;color:#7f1d1d;">
+            <strong>⚠️ Keep these codes safe</strong><br/>
+            • Each code can only be used once.<br/>
+            • Store them in a secure location — not in your email.<br/>
+            • Never share these codes with anyone.
+          </td></tr>
+        </table>
       `,
       ctaButton: null,
-      footerNote: null
+      footerNote: "Treat backup codes like passwords — keep them private and secure."
     }),
     attachments: []
   };
@@ -4629,31 +4751,35 @@ const accountVerifiedTemplate = ({ username }) => {
 /**
  * logoutAllDevicesTemplate - Logged Out From All Devices
  */
-const logoutAllDevicesTemplate = ({ username }) => {
+const logoutAllDevicesTemplate = ({ name, username, time, timestamp }) => {
+  const displayName = name || username || 'User';
+  const displayTime = time || timestamp;
   return {
-    subject: `Logged Out From All Devices`,
+    subject: `You've Been Signed Out of All Devices`,
     html: buildEmailHTML({
-      preheader: `Logged Out From All Devices`,
-      title: 'Logged Out From All Devices',
+      preheader: `All active sessions on your account have been terminated.`,
+      title: 'Signed Out of All Devices',
       headerBg: '#2563eb',
-      headerText: '📧 Logged Out From All Devices',
+      headerText: '🚪 Signed Out of All Devices',
       bodyHTML: `
         <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
+          Hello <strong>${displayName}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          We wanted to inform you about an important update.
+          All active sessions on your account have been terminated. You have been signed out of all devices.
         </p>
 
-        <!-- Add dynamic content here based on parameters -->
+        ${displayTime ? `<p style="margin:0 0 16px 0;color:#6b7280;font-size:13px;">This action was performed on: <strong>${new Date(displayTime).toLocaleString()}</strong></p>` : ''}
 
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          Thank you,<br/>
-          <strong style="color:#111827;">The ${applicaionName || 'Team'}</strong>
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
+          <tr><td style="font-size:14px;color:#92400e;">
+            <strong>If this wasn't you</strong><br/>
+            Someone may have unauthorized access to your account. Sign in immediately and change your password.
+          </td></tr>
+        </table>
       `,
-      ctaButton: null,
-      footerNote: null
+      ctaButton: { url: appUrl + '/login', text: 'Sign In Again', color: '#2563eb' },
+      footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
   };
@@ -16372,6 +16498,38 @@ const LEAD_LOST_NOTIFICATION = ({
   attachments: []
 });
 
+/**
+ * emailVerificationTemplate — Resend verify-email link.
+ * Variables: { name, verifyLink, expiryHours }
+ */
+const emailVerificationTemplate = ({ name, username, verifyLink, expiryHours = 24 }) => {
+  const displayName = name || username || 'User';
+  return {
+    subject: 'Verify Your Email Address',
+    html: buildEmailHTML({
+      preheader: `Hi ${displayName}, one quick step — please verify your email address.`,
+      title: 'Verify Your Email',
+      headerBg: '#2563eb',
+      headerText: '📧 Verify Your Email',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hi <strong>${displayName}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Please verify your email address to keep your account active and secure.
+        </p>
+        <p style="margin:0 0 24px 0;color:#6b7280;font-size:13px;">
+          This link expires in <strong>${expiryHours} hour${expiryHours !== 1 ? 's' : ''}</strong>.
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      `,
+      ctaButton: { url: verifyLink, text: 'Verify Email Address', color: '#2563eb' },
+      footerNote: `If the button doesn't work, copy and paste this link into your browser:<br/><span style="word-break:break-all">${verifyLink}</span>`
+    }),
+    attachments: []
+  };
+};
+
 module.exports = {
   // New modern templates
   MAGIC_LINK,
@@ -16380,6 +16538,7 @@ module.exports = {
   BIRTHDAY_GREETING,
   TEAM_INVITE,
   otpEmailTemplate,
+  emailVerificationTemplate,
   INQUIRY_NOTIFICATION,
   CONTACT_CONFIRMATION,
   INQUIRY_CONFIRMATION,
@@ -16403,6 +16562,8 @@ module.exports = {
   accountDeactivationWarningTemplate,
   accountReactivatedTemplate,
   USER_CREATED,
+  USER_WELCOME,
+  ADMIN_USER_REGISTERED,
   USER_UPDATED,
   USER_DELETED,
   USER_SUSPENDED,

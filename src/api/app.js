@@ -23,6 +23,29 @@ const generateRequestId = crypto.randomUUID
   ? () => crypto.randomUUID()
   : () => `${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 9)}`;
 
+// Recursively serialise: Mongoose docs → plain objects, _id → id (string), __v stripped,
+// null values stripped (returns undefined for null so callers can omit the key).
+function _cleanResponse(val) {
+  if (val === null || val === undefined) return undefined;
+  if (typeof val !== 'object') return val;
+  if (val instanceof Date) return val;
+  if (Buffer.isBuffer(val)) return val;
+  if (Array.isArray(val)) return val.map(_cleanResponse).filter(v => v !== undefined);
+  const src = typeof val.toJSON === 'function' ? val.toJSON() : val;
+  if (typeof src !== 'object' || src === null) return src;
+  const out = {};
+  for (const key of Object.keys(src)) {
+    if (key === '__v' || key === '_id' || key === 'id' ||
+        key === 'isDeleted' || key === 'deletedAt' ||
+        key === 'created_by' || key === 'updated_by' || key === 'deleted_by') continue;
+    const v = _cleanResponse(src[key]);
+    if (v !== undefined) out[key] = v;
+  }
+  const rawId = src.id !== undefined ? src.id : src._id;
+  if (rawId !== undefined) out.id = String(rawId);
+  return out;
+}
+
 module.exports = function setupAPI(app) {
   // Trust proxy for correct IP detection behind load balancers
   app.set('trust proxy', env.TRUST_PROXY ? true : 1);
@@ -120,6 +143,23 @@ module.exports = function setupAPI(app) {
     next();
   });
 
+  // Response envelope — injects timestamp, requestId, statusCode, status;
+  // serialises _id → id, strips __v and null values, sets Content-Type header.
+  app.use((req, res, next) => {
+    const _json = res.json.bind(res);
+    res.json = function (body) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      if (body !== null && body !== undefined && typeof body === 'object' && !Array.isArray(body)) {
+        body.timestamp  = new Date().toISOString();
+        body.requestId  = req.requestId;
+        body.statusCode = res.statusCode;
+        body.status     = res.statusCode < 400 ? 'success' : 'error';
+      }
+      return _json(_cleanResponse(body));
+    };
+    next();
+  });
+
   // Health check endpoint (fast, no async overhead)
   app.get('/health', (req, res) => {
     res.status(200).json({
@@ -156,6 +196,11 @@ module.exports = function setupAPI(app) {
 
   // Metrics endpoint
   app.get('/metrics', asyncHandler(emailController.getMetrics));
+
+  // Tenant resolution — sets req.tenantId for all email routes
+  // Health and metrics endpoints registered above are intentionally excluded.
+  const { resolveTenantMiddleware } = require('../middlewares/tenant');
+  app.use(resolveTenantMiddleware);
 
   // Email endpoints with timeout protection
   app.post('/send-email', asyncHandlerWithTimeout(emailController.sendEmail, REQUEST_TIMEOUT_MS));

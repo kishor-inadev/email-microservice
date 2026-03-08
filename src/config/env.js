@@ -105,6 +105,12 @@ const env = {
   IDEMPOTENCY_TTL_MS:              parseInt(process.env.IDEMPOTENCY_TTL_MS) || 3600000,
   IDEMPOTENCY_CLEANUP_INTERVAL_MS: parseInt(process.env.IDEMPOTENCY_CLEANUP_INTERVAL_MS) || 300000,
 
+  // ─── Tenant ───────────────────────────────────────────────────────────────
+  // true  → x-tenant-id header required on every email request (or falls back to DEFAULT_TENANT_ID)
+  // false → tenant resolution is best-effort; service continues without tenant context
+  TENANCY_ENABLED:   process.env.TENANCY_ENABLED === 'true',
+  DEFAULT_TENANT_ID: process.env.DEFAULT_TENANT_ID?.trim() || null,
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
   isProduction:  () => env.NODE_ENV === 'production',
   isDevelopment: () => env.NODE_ENV === 'development',
