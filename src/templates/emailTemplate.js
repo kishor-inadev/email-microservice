@@ -15647,7 +15647,7 @@ const LEAD_RECEIVED = ({
   budget,
   timeline,
   companyName = 'Our Team',
-  supportEmail = 'support@yourcompany.com',
+  supportEmail = 'kishor81160@gmail.com',
   baseUrl = appUrl
 }) => {
   return {
@@ -16008,7 +16008,7 @@ const PROJECT_PROPOSAL_EMAIL = ({
   issueDate,
   validUntil,
   companyName = 'Your Company',
-  contactEmail = 'support@yourcompany.com',
+  contactEmail = 'kishor81160@gmail.com',
   contactPhone = '',
   attachmentName = 'proposal.pdf',
   message = '',
