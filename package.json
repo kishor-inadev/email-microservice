@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "debug": "node --inspect=9236 index.js",
+    "debug:dev": "nodemon --inspect=9236 index.js",
     "dev:pm2": "pm2-dev start ecosystem.config.js",
     "lint": "eslint src/ --ext .js",
     "lint:fix": "eslint src/ --ext .js --fix",
