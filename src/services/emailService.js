@@ -12,10 +12,18 @@ const RETRYABLE_SMTP_CODES = new Set([421, 450, 451, 452]);
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.smtpConfigured = false;
     this.templateCache = new Map();
     this.circuitBreaker = circuitBreakers.email;
     this._oauth2Client = null; // Cached OAuth2 client
-    this.initializeTransporter();
+    try {
+      this.initializeTransporter();
+      this.smtpConfigured = true;
+    } catch (err) {
+      logger.warn('SMTP not configured — email sending disabled until credentials are provided.', {
+        error: err.message
+      });
+    }
     this._preloadTemplates();
   }
 
@@ -220,6 +228,13 @@ class EmailService {
 
     if (!templateName) {
       throw new TemplateError('Either template or templateId must be provided');
+    }
+
+    if (!this.transporter) {
+      throw new ServiceUnavailableError(
+        'SMTP is not configured. Set EMAIL_USER and EMAIL_PASS to enable email sending.',
+        'email'
+      );
     }
 
     // Check circuit breaker availability

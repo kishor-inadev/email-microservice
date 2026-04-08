@@ -25,8 +25,8 @@ const env = {
   CORS_ORIGIN:          process.env.CORS_ORIGIN || '*',
 
   // ─── Rate Limiting ────────────────────────────────────────────────────────
-  RATE_LIMIT_WINDOW_MS:    parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  RATE_LIMIT_WINDOW_MS:    parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000,
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
 
   // ─── Logging ──────────────────────────────────────────────────────────────
   ENABLE_LOGGING:       process.env.ENABLE_LOGGING !== 'false',
@@ -42,8 +42,8 @@ const env = {
 
   // ─── MongoDB ──────────────────────────────────────────────────────────────
   MONGO_URL:            process.env.MONGO_URL,
-  MONGO_MAX_POOL_SIZE:  parseInt(process.env.MONGO_MAX_POOL_SIZE) || 20,
-  MONGO_MIN_POOL_SIZE:  parseInt(process.env.MONGO_MIN_POOL_SIZE) || 2,
+  MONGO_MAX_POOL_SIZE:  parseInt(process.env.MONGO_MAX_POOL_SIZE) || 100,
+  MONGO_MIN_POOL_SIZE:  parseInt(process.env.MONGO_MIN_POOL_SIZE) || 20,
   MONGO_READ_PREFERENCE: process.env.MONGO_READ_PREFERENCE || 'primaryPreferred',
   MONGO_WRITE_CONCERN:  process.env.MONGO_WRITE_CONCERN || 'majority',
   DB_MAX_IDLE_TIME:           parseInt(process.env.DB_MAX_IDLE_TIME) || 30000,
@@ -60,7 +60,7 @@ const env = {
   KAFKA_TOPIC_SEND:           process.env.KAFKA_TOPIC_SEND || 'email.notification.send',
   KAFKA_TOPIC_SUCCESS:        process.env.KAFKA_TOPIC_SUCCESS || 'email.notification.delivered',
   KAFKA_TOPIC_FAILED:         process.env.KAFKA_TOPIC_FAILED || 'email.notification.failed',
-  KAFKA_CONCURRENT_PARTITIONS: parseInt(process.env.KAFKA_CONCURRENT_PARTITIONS) || 3,
+  KAFKA_CONCURRENT_PARTITIONS: parseInt(process.env.KAFKA_CONCURRENT_PARTITIONS) || 10,
 
   // ─── Email (SMTP) ─────────────────────────────────────────────────────────
   EMAIL_SERVICE:    process.env.EMAIL_SERVICE || '',
@@ -72,11 +72,11 @@ const env = {
   DEFAULT_FROM_EMAIL: process.env.DEFAULT_FROM_EMAIL || '',
   DEFAULT_FROM_NAME:  process.env.DEFAULT_FROM_NAME || 'Company',
 
-  // Email throughput
-  EMAIL_MAX_CONNECTIONS: parseInt(process.env.EMAIL_MAX_CONNECTIONS) || 20,
+  // Email throughput (optimized defaults for production)
+  EMAIL_MAX_CONNECTIONS: parseInt(process.env.EMAIL_MAX_CONNECTIONS) || 100,
   EMAIL_MAX_MESSAGES:    parseInt(process.env.EMAIL_MAX_MESSAGES) || 500,
   EMAIL_RATE_DELTA:      parseInt(process.env.EMAIL_RATE_DELTA) || 1000,
-  EMAIL_RATE_LIMIT:      parseInt(process.env.EMAIL_RATE_LIMIT) || 50,
+  EMAIL_RATE_LIMIT:      parseInt(process.env.EMAIL_RATE_LIMIT) || 500,
 
   // Email TLS
   EMAIL_TLS_REJECT_UNAUTHORIZED: process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false',

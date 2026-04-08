@@ -6,13 +6,17 @@ A production-grade email sending microservice built with Node.js that integrates
 
 - 🚀 **Kafka Integration**: Consume from `email.send` topic, publish to `email.success`/`email.failed` topics
 - 🌐 **HTTP API**: REST endpoints for sending emails synchronously or asynchronously
-- 📧 **Template System**: JavaScript-based email templates with dynamic content rendering
+- 📧 **Template System**: 294 JavaScript-based email templates with dynamic content rendering
+  - ✅ 287 General-purpose templates (user management, e-commerce, payments, etc.)
+  - ✅ 7 Marketplace-specific templates (service requests, proposals, jobs, payments)
 - 🔄 **Retry Logic**: Configurable retry/backoff strategy with dead letter queue support
 - 🛡️ **Idempotency**: Prevent duplicate email sending with configurable TTL
 - 📊 **Observability**: Structured logging, metrics, and health checks
 - 🔒 **Security**: Input validation, rate limiting, and secure credential handling
 - 🐳 **Docker Ready**: Complete containerization with docker-compose for development
 - ✅ **Production Ready**: PM2 support, proper error handling, and monitoring
+- 🏪 **Marketplace Ready**: Built-in templates for service marketplace platforms
+- 🛡️ **Graceful Degradation**: Service starts successfully even without SMTP credentials configured
 
 ## Quick Start
 
@@ -148,21 +152,46 @@ async function sendWelcomeEmail(user) {
       key: user.id, // Optional: for message ordering
       value: JSON.stringify({
         to: user.email,
-        from: 'noreply@company.com',
-        templateId: 'user-welcome-v2',  // Use templateId for better organization
-        data: { 
+        templateId: 'USER_WELCOME',
+        data: {
           username: user.name,
           email: user.email,
-          activationUrl: `https://app.com/activate?token=${user.activationToken}`
-        },
-        idempotencyKey: `user-${user.id}-welcome`
+          verifyLink: `https://yourapp.com/verify/${user.verificationToken}`
+        }
       })
     }]
   });
 }
 ```
 
-#### Example 2: Password Reset Email
+### Example 2: Marketplace Service Request (New!)
+
+```javascript
+async function notifyProviderOfNewRequest(provider, request) {
+  await producer.send({
+    topic: 'email.send',
+    messages: [{
+      key: provider.id,
+      value: JSON.stringify({
+        to: provider.email,
+        templateId: 'MARKETPLACE_NEW_REQUEST',
+        data: { 
+          providerName: provider.name,
+          requestTitle: request.title,
+          category: request.category,
+          budget: request.budget,
+          customerName: request.customer.name,
+          requestDisplayId: request.displayId,
+          requestUrl: `https://yourmarketplace.com/requests/${request.id}`
+        },
+        idempotencyKey: `request-${request.id}-notify-${provider.id}`
+      })
+    }]
+  });
+}
+```
+
+#### Example 3: Password Reset Email
 
 ```javascript
 async function sendPasswordReset(user, resetToken) {

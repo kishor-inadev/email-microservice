@@ -16530,7 +16530,388 @@ const emailVerificationTemplate = ({ name, username, verifyLink, expiryHours = 2
   };
 };
 
+// =====================================================================================
+// 🏪 MARKETPLACE-SPECIFIC EMAIL TEMPLATES
+// =====================================================================================
+
+/**
+ * MARKETPLACE_WELCOME — Welcome email for Local Service Marketplace
+ * Sent when: A new user (provider or customer) joins the marketplace
+ * Variables: { name, email, dashboardUrl }
+ */
+const MARKETPLACE_WELCOME = ({ name, email, dashboardUrl = `${appUrl}/dashboard` }) => {
+  const isProvider = name && name.toLowerCase().includes('provider');
+  
+  return {
+    subject: 'Welcome to Local Service Marketplace! 🎉',
+    html: buildEmailHTML({
+      preheader: `Welcome to Local Service Marketplace! ${isProvider ? 'Start receiving customer requests.' : 'Find local service providers.'}`,
+      title: 'Welcome to Local Service Marketplace',
+      headerBg: '#667eea',
+      headerText: '🎉 Welcome to Local Service Marketplace!',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${name || 'there'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          We're excited to have you on board! Your account has been successfully created.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:24px;">
+            <strong style="color:#111827;">Get started:</strong><br/>
+            ${isProvider ? `
+              ✔️ Complete your provider profile<br/>
+              ✔️ Add your services and rates<br/>
+              ✔️ Start receiving customer requests
+            ` : `
+              ✔️ Browse local service providers<br/>
+              ✔️ Post your first service request<br/>
+              ✔️ Get competitive proposals from pros
+            `}
+          </td></tr>
+        </table>
+        
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          Need help? Visit our help center or contact support anytime.
+        </p>
+      `,
+      ctaButton: {
+        url: dashboardUrl,
+        text: 'Go to Dashboard',
+        color: '#667eea'
+      },
+      footerNote: 'You\'re receiving this email because you created an account with us.'
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * MARKETPLACE_EMAIL_VERIFICATION — Email verification for marketplace
+ * Sent when: User needs to verify their email address
+ * Variables: { name, verificationLink }
+ */
+const MARKETPLACE_EMAIL_VERIFICATION = ({ name, verificationLink }) => {
+  return {
+    subject: 'Verify Your Email Address',
+    html: buildEmailHTML({
+      preheader: 'Please verify your email address to activate your account.',
+      title: 'Verify Your Email',
+      headerBg: '#10b981',
+      headerText: '📧 Verify Your Email',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${name || 'there'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Thank you for signing up! Please verify your email address by clicking the button below.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px 20px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
+          <tr><td style="font-size:13px;color:#92400e;">
+            ⏰ This link will expire in <strong>24 hours</strong>.
+          </td></tr>
+        </table>
+        
+        <p style="margin:16px 0 0 0;color:#6b7280;font-size:13px;">
+          If you didn't create an account, please ignore this email.
+        </p>
+      `,
+      ctaButton: {
+        url: verificationLink,
+        text: 'Verify Email Address',
+        color: '#10b981'
+      },
+      footerNote: `If the button doesn't work, copy and paste this link into your browser:<br/><span style="word-break:break-all;color:#667eea;">${verificationLink}</span>`
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * MARKETPLACE_PASSWORD_RESET — Password reset for marketplace
+ * Sent when: User requests to reset their password
+ * Variables: { name, resetLink }
+ */
+const MARKETPLACE_PASSWORD_RESET = ({ name, resetLink }) => {
+  return {
+    subject: 'Reset Your Password',
+    html: buildEmailHTML({
+      preheader: 'You requested to reset your password. Click to create a new password.',
+      title: 'Reset Your Password',
+      headerBg: '#ef4444',
+      headerText: '🔐 Reset Your Password',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${name || 'there'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          We received a request to reset your password. Click the button below to create a new password.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px 20px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:6px;">
+          <tr><td style="font-size:13px;color:#7f1d1d;">
+            ⏰ This link will expire in <strong>1 hour</strong>.
+          </td></tr>
+        </table>
+        
+        <p style="margin:16px 0 0 0;color:#6b7280;font-size:13px;">
+          If you didn't request a password reset, please ignore this email or contact support if you have concerns.
+        </p>
+      `,
+      ctaButton: {
+        url: resetLink,
+        text: 'Reset Password',
+        color: '#ef4444'
+      },
+      footerNote: `If the button doesn't work, copy and paste this link into your browser:<br/><span style="word-break:break-all;color:#667eea;">${resetLink}</span>`
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * MARKETPLACE_NEW_REQUEST — Service request notification for providers
+ * Sent when: A new service request is posted that matches provider's expertise
+ * Variables: { providerName, requestTitle, category, budget, customerName, requestDisplayId, requestUrl }
+ */
+const MARKETPLACE_NEW_REQUEST = ({ 
+  providerName, 
+  requestTitle, 
+  category, 
+  budget, 
+  customerName, 
+  requestDisplayId, 
+  requestUrl = `${appUrl}/requests` 
+}) => {
+  return {
+    subject: 'New Service Request in Your Area! 🔔',
+    html: buildEmailHTML({
+      preheader: `New service request: ${requestTitle} - Budget: $${budget}`,
+      title: 'New Service Request',
+      headerBg: '#667eea',
+      headerText: '🔔 New Service Request',
+      alert: {
+        type: 'warn',
+        text: 'Action Required: A new service request matches your expertise!'
+      },
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${providerName || 'Provider'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          A new service request has been posted in your area that matches your expertise.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:24px;">
+            <strong style="color:#111827;">Request Details:</strong><br/>
+            <span style="color:#6b7280;">Title:</span> <strong style="color:#111827;">${requestTitle}</strong><br/>
+            <span style="color:#6b7280;">Category:</span> <strong style="color:#111827;">${category}</strong><br/>
+            <span style="color:#6b7280;">Budget:</strong> <strong style="color:#10b981;">$${budget}</strong><br/>
+            <span style="color:#6b7280;">Customer:</span> <strong style="color:#111827;">${customerName}</strong>
+            ${requestDisplayId ? `<br/><span style="color:#6b7280;">Request ID:</span> <code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-family:monospace">${requestDisplayId}</code>` : ''}
+          </td></tr>
+        </table>
+        
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          Submit your proposal before other providers to increase your chances of winning this job!
+        </p>
+      `,
+      ctaButton: {
+        url: requestUrl,
+        text: 'View Request & Submit Proposal',
+        color: '#667eea'
+      },
+      footerNote: null
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * MARKETPLACE_PROPOSAL_RECEIVED — Proposal received notification for customers
+ * Sent when: Customer receives a new proposal from a provider
+ * Variables: { customerName, providerName, requestTitle, price, estimatedDuration, proposalDisplayId, requestDisplayId, proposalUrl }
+ */
+const MARKETPLACE_PROPOSAL_RECEIVED = ({ 
+  customerName, 
+  providerName, 
+  requestTitle, 
+  price, 
+  estimatedDuration, 
+  proposalDisplayId, 
+  requestDisplayId, 
+  proposalUrl = `${appUrl}/dashboard` 
+}) => {
+  return {
+    subject: 'New Proposal Received for Your Request 📬',
+    html: buildEmailHTML({
+      preheader: `${providerName} sent you a proposal for "${requestTitle}"`,
+      title: 'New Proposal Received',
+      headerBg: '#10b981',
+      headerText: '📬 New Proposal Received!',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${customerName || 'Customer'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Good news! You've received a new proposal for your service request.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f0fdf4;border-left:4px solid #10b981;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:24px;">
+            <strong style="color:#065f46;font-size:16px;margin-bottom:8px;display:block;">${requestTitle}</strong>
+            <span style="color:#6b7280;">Provider:</span> <strong style="color:#111827;">${providerName}</strong><br/>
+            <span style="color:#6b7280;">Price:</span> <strong style="color:#10b981;font-size:18px;">$${price}</strong><br/>
+            <span style="color:#6b7280;">Estimated Duration:</span> <strong style="color:#111827;">${estimatedDuration}</strong>
+            ${requestDisplayId ? `<br/><span style="color:#6b7280;">Request ID:</span> <code style="background:#dcfce7;padding:2px 6px;border-radius:3px;font-family:monospace">${requestDisplayId}</code>` : ''}
+            ${proposalDisplayId ? `<br/><span style="color:#6b7280;">Proposal ID:</span> <code style="background:#dcfce7;padding:2px 6px;border-radius:3px;font-family:monospace">${proposalDisplayId}</code>` : ''}
+          </td></tr>
+        </table>
+        
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          Review the proposal details and the provider's profile before making your decision.
+        </p>
+      `,
+      ctaButton: {
+        url: proposalUrl,
+        text: 'Review Proposal',
+        color: '#10b981'
+      },
+      footerNote: null
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * MARKETPLACE_JOB_ASSIGNED — Job assignment confirmation for providers
+ * Sent when: Customer accepts provider's proposal
+ * Variables: { providerName, requestTitle, customerName, price, startDate, jobDisplayId, jobUrl }
+ */
+const MARKETPLACE_JOB_ASSIGNED = ({ 
+  providerName, 
+  requestTitle, 
+  customerName, 
+  price, 
+  startDate, 
+  jobDisplayId, 
+  jobUrl = `${appUrl}/jobs` 
+}) => {
+  return {
+    subject: 'Congratulations! Your Proposal Was Accepted 🎉',
+    html: buildEmailHTML({
+      preheader: `Your proposal for "${requestTitle}" has been accepted!`,
+      title: 'Proposal Accepted',
+      headerBg: '#8b5cf6',
+      headerText: '🎉 Congratulations!',
+      bodyHTML: `
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 24px 0;padding:30px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:10px;text-align:center;">
+          <tr><td>
+            <h1 style="color:#fff;margin:0 0 8px 0;font-size:28px;">🎉 Congratulations!</h1>
+            <h2 style="color:#f3f4f6;margin:0;font-size:20px;font-weight:400;">Your Proposal Was Accepted</h2>
+          </td></tr>
+        </table>
+        
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${providerName || 'Provider'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Great news! Your proposal has been accepted. You can now start working on this project.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
+          <tr><td style="font-size:14px;line-height:24px;">
+            <strong style="color:#111827;">Job Details:</strong><br/>
+            <span style="color:#6b7280;">Request:</span> <strong style="color:#111827;">${requestTitle}</strong><br/>
+            <span style="color:#6b7280;">Customer:</span> <strong style="color:#111827;">${customerName}</strong><br/>
+            <span style="color:#6b7280;">Price:</span> <strong style="color:#10b981;font-size:18px;">$${price}</strong><br/>
+            <span style="color:#6b7280;">Start Date:</span> <strong style="color:#111827;">${startDate}</strong>
+            ${jobDisplayId ? `<br/><span style="color:#6b7280;">Job ID:</span> <code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-family:monospace">${jobDisplayId}</code>` : ''}
+          </td></tr>
+        </table>
+        
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          Log in to view job details and communicate with the customer.
+        </p>
+      `,
+      ctaButton: {
+        url: jobUrl,
+        text: 'View Job Details',
+        color: '#10b981'
+      },
+      footerNote: null
+    }),
+    attachments: []
+  };
+};
+
+/**
+ * MARKETPLACE_PAYMENT_RECEIVED — Payment confirmation for providers
+ * Sent when: Provider receives payment for completed job
+ * Variables: { providerName, amount, jobTitle, customerName, paymentDisplayId, dashboardUrl }
+ */
+const MARKETPLACE_PAYMENT_RECEIVED = ({ 
+  providerName, 
+  amount, 
+  jobTitle, 
+  customerName, 
+  paymentDisplayId, 
+  dashboardUrl = `${appUrl}/dashboard` 
+}) => {
+  return {
+    subject: `Payment Received - $${amount} 💰`,
+    html: buildEmailHTML({
+      preheader: `You've received a payment of $${amount} for "${jobTitle}"`,
+      title: 'Payment Received',
+      headerBg: '#10b981',
+      headerText: '💰 Payment Received',
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${providerName || 'Provider'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Great news! You've received a payment for completing a job.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#d1fae5;border-left:4px solid #10b981;border-radius:8px;">
+          <tr><td>
+            <h3 style="color:#10b981;margin:0 0 16px 0;font-size:32px;font-weight:700;">$${amount}</h3>
+            <div style="font-size:14px;line-height:24px;">
+              <span style="color:#6b7280;">Job:</span> <strong style="color:#111827;">${jobTitle}</strong><br/>
+              <span style="color:#6b7280;">Customer:</span> <strong style="color:#111827;">${customerName}</strong>
+              ${paymentDisplayId ? `<br/><span style="color:#6b7280;">Payment ID:</span> <code style="background:#a7f3d0;padding:2px 6px;border-radius:3px;font-family:monospace">${paymentDisplayId}</code>` : ''}
+            </div>
+          </td></tr>
+        </table>
+        
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          The payment will be transferred to your account according to your payout schedule.
+        </p>
+      `,
+      ctaButton: {
+        url: dashboardUrl,
+        text: 'View Dashboard',
+        color: '#10b981'
+      },
+      footerNote: null
+    }),
+    attachments: []
+  };
+};
+
 module.exports = {
+  // Marketplace-specific templates
+  MARKETPLACE_WELCOME,
+  MARKETPLACE_EMAIL_VERIFICATION,
+  MARKETPLACE_PASSWORD_RESET,
+  MARKETPLACE_NEW_REQUEST,
+  MARKETPLACE_PROPOSAL_RECEIVED,
+  MARKETPLACE_JOB_ASSIGNED,
+  MARKETPLACE_PAYMENT_RECEIVED,
+
   // New modern templates
   MAGIC_LINK,
   TRIAL_EXPIRING,
