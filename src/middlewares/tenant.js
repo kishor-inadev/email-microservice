@@ -1,7 +1,9 @@
 'use strict';
 
-const TENANCY_ENABLED = process.env.TENANCY_ENABLED === 'true';
-const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID?.trim() || 'easydev';
+const env = require('../config/env');
+
+const TENANCY_ENABLED = env.TENANCY_ENABLED;
+const DEFAULT_TENANT_ID = env.DEFAULT_TENANT_ID;
 
 /**
  * Resolves req.tenantId from the x-tenant-id request header.
@@ -15,19 +17,14 @@ function resolveTenantMiddleware(req, res, next) {
     return next();
   }
 
-  const tenantId = (req.headers['x-tenant-id'] || '').trim();
+  const tenantId = (req.headers['x-tenant-id'] || req.headers['x-tanent'] || '').trim();
 
   if (tenantId) {
     req.tenantId = tenantId;
     return next();
   }
 
-  if (DEFAULT_TENANT_ID) {
-    req.tenantId = DEFAULT_TENANT_ID;
-    return next();
-  }
-
-  req.tenantId = 'easydev';
+  req.tenantId = DEFAULT_TENANT_ID || null;
   next();
 }
 

@@ -210,12 +210,29 @@ class EmailService {
   }
 
   /** Render template — synchronous, no async overhead */
-  renderTemplate(templateName, data) {
+  renderTemplate(templateName, data, appContext = {}) {
+    // Merge env defaults + per-request appContext + caller data.
+    // Priority (lowest → highest): env default < appContext (headers) < explicit data fields.
+    const enrichedData = {
+      appUrl:          appContext.appUrl          || env.APP_URL,
+      applicationName: appContext.applicationName || env.APPLICATION_NAME,
+      ctaPath:         appContext.ctaPath         || null,
+      ...data,   // template-specific fields (verifyLink, resetLink, etc.) always win
+    };
+
     const template = this.loadTemplate(templateName);
-    const rendered = template(data);
+    const rendered = template(enrichedData);
 
     if (!rendered.subject || !rendered.html) {
       throw new TemplateError('Template must return subject & html', templateName);
+    }
+
+    // If caller requested a different base URL than the env default, replace it in the rendered HTML.
+    // This ensures non-updated templates still respect per-request appUrl overrides.
+    const requestedUrl = appContext.appUrl;
+    if (requestedUrl && requestedUrl !== env.APP_URL && rendered.html) {
+      const escapedEnvUrl = env.APP_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      rendered.html = rendered.html.replace(new RegExp(escapedEnvUrl, 'g'), requestedUrl);
     }
 
     return rendered;
@@ -223,7 +240,7 @@ class EmailService {
 
   /** Send email with circuit breaker protection */
   async sendEmail(payload) {
-    const { to, from, templateId, template, data = {}, cc, bcc, attachments } = payload;
+    const { to, from, templateId, template, data = {}, appContext = {}, cc, bcc, attachments } = payload;
     const templateName = templateId || template;
 
     if (!templateName) {
@@ -247,7 +264,7 @@ class EmailService {
     try {
       // Execute through circuit breaker
       const result = await this.circuitBreaker.execute(async () => {
-        const { subject, html, text } = this.renderTemplate(templateName, data);
+        const { subject, html, text } = this.renderTemplate(templateName, data, appContext);
 
         const mailOptions = {
           from: from || `${env.DEFAULT_FROM_NAME} <${env.DEFAULT_FROM_EMAIL}>`,

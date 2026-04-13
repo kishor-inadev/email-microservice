@@ -202,6 +202,11 @@ module.exports = function setupAPI(app) {
   const { resolveTenantMiddleware } = require('../middlewares/tenant');
   app.use(resolveTenantMiddleware);
 
+  // App context resolution — sets req.appContext (applicationName, appUrl, ctaPath)
+  // from x-app, x-app-url, x-path headers, falling back to env vars.
+  const { resolveAppContextMiddleware } = require('../middlewares/appContext');
+  app.use(resolveAppContextMiddleware);
+
   // Email endpoints with timeout protection
   app.post('/send-email', asyncHandlerWithTimeout(emailController.sendEmail, REQUEST_TIMEOUT_MS));
 

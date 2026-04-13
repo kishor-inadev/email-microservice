@@ -34,6 +34,7 @@ async function prepareEmailRequest(req, res) {
   const emailPayload = value;
   emailPayload.requestId = requestId;
   emailPayload.timestamp = new Date().toISOString();
+  emailPayload.appContext = req.appContext || {};
 
   // Idempotency check
   if (emailPayload.idempotencyKey) {
