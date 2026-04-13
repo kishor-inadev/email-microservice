@@ -11,7 +11,7 @@ const buildEmailHTML = (opts = {}) => {
     preheader = '',
     title = 'Notification',
     applicationName = opts.applicationName || opts.applicaionName || applicaionName, // support earlier typo; falls back to module-level env value
-    baseUrl = opts.baseUrl || opts.appUrl || opts.frontendUrl || appUrl,  // falls back to module-level env value
+    baseUrl = opts.baseUrl || opts.appUrl || opts.frontendUrl || appUrl, // falls back to module-level env value
     logo = null, // { url, alt, width, height, href, align: 'center'|'left' }
     headerBg = '#2563eb',
     headerText = '',
@@ -436,7 +436,7 @@ const CONTACT_NOTIFICATION = ({
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/dashboard/contacts'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/dashboard/contacts',
         text: 'View in Dashboard',
         color: '#6366f1'
       },
@@ -451,7 +451,15 @@ const CONTACT_NOTIFICATION = ({
  * Sent to admins or used internally. Original contract preserved.
  * Variables: { userId, username, email, timestamp }
  */
-const USER_CREATED = ({ userId, username, email, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const USER_CREATED = ({
+  userId,
+  username,
+  email,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `New User Account Created`,
     html: buildEmailHTML({
@@ -483,7 +491,7 @@ const USER_CREATED = ({ userId, username, email, timestamp, appUrl: _appUrl = ap
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/dashboard/users'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/dashboard/users',
         text: 'Go to Dashboard',
         color: '#10b981'
       },
@@ -539,7 +547,16 @@ const USER_WELCOME = ({ userId, username, email, verifyLink, timestamp }) => {
  * ADMIN_USER_REGISTERED — Admin notification when a new user registers.
  * Variables: { userId, username, email, registeredAt, ipAddress }
  */
-const ADMIN_USER_REGISTERED = ({ userId, username, email, registeredAt, ipAddress, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const ADMIN_USER_REGISTERED = ({
+  userId,
+  username,
+  email,
+  registeredAt,
+  ipAddress,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `New user registered: ${email}`,
     html: buildEmailHTML({
@@ -566,7 +583,7 @@ const ADMIN_USER_REGISTERED = ({ userId, username, email, registeredAt, ipAddres
         </table>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/dashboard/users'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/dashboard/users',
         text: 'View in Dashboard',
         color: '#6366f1'
       },
@@ -658,7 +675,16 @@ const USER_DELETED = ({ userId, username, email, timestamp, reason }) => {
  * USER_SUSPENDED Email Template
  * Sent when: Your account has been temporarily suspended.
  */
-const USER_SUSPENDED = ({ userId, username, email, timestamp, reason, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const USER_SUSPENDED = ({
+  userId,
+  username,
+  email,
+  timestamp,
+  reason,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Account Suspended`,
     html: buildEmailHTML({
@@ -688,7 +714,7 @@ const USER_SUSPENDED = ({ userId, username, email, timestamp, reason, appUrl: _a
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/support'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/support',
         text: 'Contact Support',
         color: '#dc2626'
       },
@@ -699,10 +725,63 @@ const USER_SUSPENDED = ({ userId, username, email, timestamp, reason, appUrl: _a
 };
 
 /**
+ * USER_BANNED Email Template
+ * Sent when: A user's account has been permanently banned.
+ */
+const USER_BANNED = ({ userId, username, email, timestamp, reason, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+  return {
+    subject: `Account Banned`,
+    html: buildEmailHTML({
+      preheader: `Your account has been permanently banned.`,
+      title: 'Account Banned',
+      headerBg: '#dc2626',
+      headerText: '🚫 Account Banned',
+      appUrl: _appUrl,
+      applicationName: _appName,
+      bodyHTML: `
+        <p style="margin:0 0 16px 0;">
+          Hello <strong>${username || 'User'}</strong>,
+        </p>
+        <p style="margin:0 0 16px 0;color:#4b5563;">
+          Your account has been permanently banned due to a violation of our terms of service.
+        </p>
+        
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
+          <tr><td style="font-size:14px;color:#7f1d1d;">
+            <strong>Reason:</strong><br/>
+            ${reason || 'Repeated policy violations or security concerns.'}
+          </td></tr>
+        </table>
+        
+        <p style="margin:24px 0 0 0;color:#4b5563;">
+          This action is permanent and cannot be appealed. If you believe this is a mistake, you may contact our support team, but we cannot guarantee a reversal of this decision.
+        </p>
+      `,
+      ctaButton: {
+        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/support'),
+        text: 'Contact Support',
+        color: '#dc2626'
+      },
+      footerNote: 'This decision is final.'
+    }),
+    attachments: []
+  };
+};
+
+/**
  * USER_REINSTATED Email Template
  * Sent when: Your account has been reinstated and is now active.
  */
-const USER_REINSTATED = ({ userId, username, email, timestamp, reason, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const USER_REINSTATED = ({
+  userId,
+  username,
+  email,
+  timestamp,
+  reason,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Account Reinstated`,
     html: buildEmailHTML({
@@ -725,7 +804,7 @@ const USER_REINSTATED = ({ userId, username, email, timestamp, reason, appUrl: _
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/dashboard'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/dashboard',
         text: 'Go to Dashboard',
         color: '#10b981'
       },
@@ -857,7 +936,13 @@ const PERMISSION_CHANGED = ({ username, roleName, permissions, changedBy }) => {
  * PASSWORD_CHANGED Email Template
  * Sent when: Your password has been changed successfully.
  */
-const PASSWORD_CHANGED = ({ name, username, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const PASSWORD_CHANGED = ({
+  name,
+  username,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   return {
     subject: `Password Changed Successfully`,
@@ -887,7 +972,11 @@ const PASSWORD_CHANGED = ({ name, username, appUrl: _appUrl = appUrl, applicatio
           Your account security is our top priority.
         </p>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/settings/security'), text: 'Review Security Settings', color: '#10b981' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/settings/security',
+        text: 'Review Security Settings',
+        color: '#10b981'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -898,9 +987,18 @@ const PASSWORD_CHANGED = ({ name, username, appUrl: _appUrl = appUrl, applicatio
  * PASSWORD_RESET_REQUESTED Email Template
  * Sent when: We received a request to reset your password.
  */
-const PASSWORD_RESET_REQUESTED = ({ name, username, resetLink, resetToken, resetUrl, expiryHours = 1, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const PASSWORD_RESET_REQUESTED = ({
+  name,
+  username,
+  resetLink,
+  resetToken,
+  resetUrl,
+  expiryHours = 1,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   const displayName = name || username || 'User';
-  const ctaUrl = resetLink || resetUrl || (_appUrl + '/auth/reset-password/' + resetToken);
+  const ctaUrl = resetLink || resetUrl || _appUrl + '/auth/reset-password/' + resetToken;
   return {
     subject: `Reset Your Password`,
     html: buildEmailHTML({
@@ -936,7 +1034,13 @@ const PASSWORD_RESET_REQUESTED = ({ name, username, resetLink, resetToken, reset
  * PASSWORD_RESET_COMPLETED Email Template
  * Sent when: Your password has been reset successfully.
  */
-const PASSWORD_RESET_COMPLETED = ({ name, username, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const PASSWORD_RESET_COMPLETED = ({
+  name,
+  username,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   return {
     subject: `Password Reset Successful`,
@@ -961,7 +1065,11 @@ const PASSWORD_RESET_COMPLETED = ({ name, username, appUrl: _appUrl = appUrl, ap
           </td></tr>
         </table>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/login'), text: 'Sign In Now', color: '#10b981' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/login',
+        text: 'Sign In Now',
+        color: '#10b981'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -972,7 +1080,13 @@ const PASSWORD_RESET_COMPLETED = ({ name, username, appUrl: _appUrl = appUrl, ap
  * PASSWORD_EXPIRED Email Template
  * Sent when: Your password has expired and needs to be updated.
  */
-const PASSWORD_EXPIRED = ({ username, resetToken, resetUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const PASSWORD_EXPIRED = ({
+  username,
+  resetToken,
+  resetUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   return {
     subject: `Password Expired`,
     html: buildEmailHTML({
@@ -1012,7 +1126,14 @@ const PASSWORD_EXPIRED = ({ username, resetToken, resetUrl, appUrl: _appUrl = ap
  * EMAIL_VERIFIED Email Template
  * Sent when: Your email address has been verified successfully.
  */
-const EMAIL_VERIFIED = ({ name, username, verifiedItem, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const EMAIL_VERIFIED = ({
+  name,
+  username,
+  verifiedItem,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   return {
     subject: `Email Verified Successfully`,
@@ -1038,7 +1159,11 @@ const EMAIL_VERIFIED = ({ name, username, verifiedItem, appUrl: _appUrl = appUrl
           </td></tr>
         </table>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/login'), text: 'Sign In to Your Account', color: '#10b981' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/login',
+        text: 'Sign In to Your Account',
+        color: '#10b981'
+      },
       footerNote: null
     }),
     attachments: []
@@ -1087,7 +1212,13 @@ const PHONE_VERIFIED = ({ username, verifiedItem }) => {
  * PROFILE_COMPLETED Email Template
  * Sent when: Congratulations! Your profile is now complete.
  */
-const PROFILE_COMPLETED = ({ username, verifiedItem, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const PROFILE_COMPLETED = ({
+  username,
+  verifiedItem,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Profile Completed`,
     html: buildEmailHTML({
@@ -1117,7 +1248,7 @@ const PROFILE_COMPLETED = ({ username, verifiedItem, appUrl: _appUrl = appUrl, a
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/dashboard'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/dashboard',
         text: 'Go to Dashboard',
         color: '#10b981'
       },
@@ -1199,7 +1330,19 @@ const LOGIN_SUCCESS = ({ username, ipAddress, location, device, timestamp }) => 
  * LOGIN_FAILED Email Template
  * Sent when: We detected a failed login attempt on your account.
  */
-const LOGIN_FAILED = ({ name, username, ip, ipAddress, location, device, time, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const LOGIN_FAILED = ({
+  name,
+  username,
+  ip,
+  ipAddress,
+  location,
+  device,
+  time,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   const displayIp = ip || ipAddress || 'Unknown';
   const displayTime = time || timestamp;
@@ -1237,7 +1380,11 @@ const LOGIN_FAILED = ({ name, username, ip, ipAddress, location, device, time, t
           </td></tr>
         </table>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/settings/security'), text: 'Secure My Account', color: '#dc2626' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/settings/security',
+        text: 'Secure My Account',
+        color: '#dc2626'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -1248,7 +1395,19 @@ const LOGIN_FAILED = ({ name, username, ip, ipAddress, location, device, time, t
  * NEW_DEVICE_LOGIN Email Template
  * Sent when: Your account was accessed from a new device.
  */
-const NEW_DEVICE_LOGIN = ({ name, username, ip, ipAddress, location, device, time, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const NEW_DEVICE_LOGIN = ({
+  name,
+  username,
+  ip,
+  ipAddress,
+  location,
+  device,
+  time,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   const displayIp = ip || ipAddress || 'Unknown';
   const displayTime = time || timestamp;
@@ -1286,7 +1445,11 @@ const NEW_DEVICE_LOGIN = ({ name, username, ip, ipAddress, location, device, tim
           </td></tr>
         </table>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/settings/security'), text: 'Secure My Account', color: '#f59e0b' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/settings/security',
+        text: 'Secure My Account',
+        color: '#f59e0b'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -1297,11 +1460,20 @@ const NEW_DEVICE_LOGIN = ({ name, username, ip, ipAddress, location, device, tim
  * ACCOUNT_LOCKED Email Template
  * Sent when: Your account has been locked for security reasons.
  */
-const ACCOUNT_LOCKED = ({ name, username, maxAttempts, reason, supportUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const ACCOUNT_LOCKED = ({
+  name,
+  username,
+  maxAttempts,
+  reason,
+  supportUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   const lockReason = maxAttempts
     ? `Too many failed login attempts (${maxAttempts} attempts exceeded).`
-    : (reason || 'Suspicious activity detected on your account.');
+    : reason || 'Suspicious activity detected on your account.';
   return {
     subject: `Your Account Has Been Locked`,
     html: buildEmailHTML({
@@ -1330,7 +1502,11 @@ const ACCOUNT_LOCKED = ({ name, username, maxAttempts, reason, supportUrl, appUr
           To unlock your account, use the button below to submit an unlock request. If you believe this is a mistake, contact our support team.
         </p>
       `,
-      ctaButton: { url: supportUrl || (ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/account/unlock')), text: 'Request Account Unlock', color: '#dc2626' },
+      ctaButton: {
+        url: supportUrl || (ctaPath ? _appUrl + ctaPath : _appUrl + '/account/unlock'),
+        text: 'Request Account Unlock',
+        color: '#dc2626'
+      },
       footerNote: 'If you need assistance, our support team is here to help.'
     }),
     attachments: []
@@ -1341,7 +1517,13 @@ const ACCOUNT_LOCKED = ({ name, username, maxAttempts, reason, supportUrl, appUr
  * ACCOUNT_UNLOCKED Email Template
  * Sent when: Your account has been unlocked and is now accessible.
  */
-const ACCOUNT_UNLOCKED = ({ name, username, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const ACCOUNT_UNLOCKED = ({
+  name,
+  username,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   return {
     subject: `Account Unlocked — You Can Now Sign In`,
@@ -1367,7 +1549,11 @@ const ACCOUNT_UNLOCKED = ({ name, username, appUrl: _appUrl = appUrl, applicatio
           </td></tr>
         </table>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/login'), text: 'Sign In Now', color: '#10b981' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/login',
+        text: 'Sign In Now',
+        color: '#10b981'
+      },
       footerNote: null
     }),
     attachments: []
@@ -1378,9 +1564,19 @@ const ACCOUNT_UNLOCKED = ({ name, username, appUrl: _appUrl = appUrl, applicatio
  * ACCOUNT_RECOVERY_REQUESTED Email Template
  * Sent when: We received a request to recover your account.
  */
-const ACCOUNT_RECOVERY_REQUESTED = ({ name, username, unlockLink, expiryHours = 1, accountId, reason, supportUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const ACCOUNT_RECOVERY_REQUESTED = ({
+  name,
+  username,
+  unlockLink,
+  expiryHours = 1,
+  accountId,
+  reason,
+  supportUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   const displayName = name || username || 'User';
-  const ctaUrl = unlockLink || supportUrl || (_appUrl + '/account/unlock');
+  const ctaUrl = unlockLink || supportUrl || _appUrl + '/account/unlock';
   return {
     subject: `Account Unlock Request`,
     html: buildEmailHTML({
@@ -1416,7 +1612,15 @@ const ACCOUNT_RECOVERY_REQUESTED = ({ name, username, unlockLink, expiryHours = 
  * ACCOUNT_RECOVERY_COMPLETED Email Template
  * Sent when: Your account has been recovered successfully.
  */
-const ACCOUNT_RECOVERY_COMPLETED = ({ username, accountId, reason, supportUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const ACCOUNT_RECOVERY_COMPLETED = ({
+  username,
+  accountId,
+  reason,
+  supportUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Account Recovery Completed`,
     html: buildEmailHTML({
@@ -1439,7 +1643,7 @@ const ACCOUNT_RECOVERY_COMPLETED = ({ username, accountId, reason, supportUrl, a
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/dashboard'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/dashboard',
         text: 'Go to Dashboard',
         color: '#10b981'
       },
@@ -1453,7 +1657,14 @@ const ACCOUNT_RECOVERY_COMPLETED = ({ username, accountId, reason, supportUrl, a
  * CONSENT_REQUIRED Email Template
  * Sent when: We need your consent to continue providing our services.
  */
-const CONSENT_REQUIRED = ({ username, consentType, detailsUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const CONSENT_REQUIRED = ({
+  username,
+  consentType,
+  detailsUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Consent Required`,
     html: buildEmailHTML({
@@ -1479,7 +1690,7 @@ const CONSENT_REQUIRED = ({ username, consentType, detailsUrl, appUrl: _appUrl =
         </table>
       `,
       ctaButton: {
-        url: detailsUrl || (ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/consent')),
+        url: detailsUrl || (ctaPath ? _appUrl + ctaPath : _appUrl + '/consent'),
         text: 'Manage Consent',
         color: '#3b82f6'
       },
@@ -1603,7 +1814,17 @@ const ACCOUNT_TERMINATED = ({ name, username, accountId, reason, supportUrl }) =
  * SOCIAL_LOGIN_CONNECTED Email Template
  * Sent when: A social login account has been connected.
  */
-const SOCIAL_LOGIN_CONNECTED = ({ name, username, provider, email, time, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const SOCIAL_LOGIN_CONNECTED = ({
+  name,
+  username,
+  provider,
+  email,
+  time,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   const displayTime = time || timestamp;
   return {
@@ -1636,7 +1857,11 @@ const SOCIAL_LOGIN_CONNECTED = ({ name, username, provider, email, time, timesta
           If you didn't connect this account, please review your linked accounts immediately.
         </p>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/settings/security'), text: 'Manage Connected Accounts', color: '#10b981' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/settings/security',
+        text: 'Manage Connected Accounts',
+        color: '#10b981'
+      },
       footerNote: null
     }),
     attachments: []
@@ -1647,7 +1872,17 @@ const SOCIAL_LOGIN_CONNECTED = ({ name, username, provider, email, time, timesta
  * SOCIAL_LOGIN_DISCONNECTED Email Template
  * Sent when: A social login account has been disconnected.
  */
-const SOCIAL_LOGIN_DISCONNECTED = ({ name, username, provider, email, time, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const SOCIAL_LOGIN_DISCONNECTED = ({
+  name,
+  username,
+  provider,
+  email,
+  time,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   const displayTime = time || timestamp;
   return {
@@ -1679,7 +1914,11 @@ const SOCIAL_LOGIN_DISCONNECTED = ({ name, username, provider, email, time, time
           If you didn't do this, please review your security settings immediately.
         </p>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/settings/security'), text: 'Review Security Settings', color: '#f59e0b' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/settings/security',
+        text: 'Review Security Settings',
+        color: '#f59e0b'
+      },
       footerNote: null
     }),
     attachments: []
@@ -1728,7 +1967,16 @@ const MFA_ENABLED = ({ name, username, device, time, timestamp }) => {
  * MFA_DISABLED Email Template
  * Sent when: Two-factor authentication has been disabled.
  */
-const MFA_DISABLED = ({ name, username, device, time, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const MFA_DISABLED = ({
+  name,
+  username,
+  device,
+  time,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   const displayTime = time || timestamp;
   return {
@@ -1761,7 +2009,11 @@ const MFA_DISABLED = ({ name, username, device, time, timestamp, appUrl: _appUrl
           If you didn't make this change, please secure your account immediately.
         </p>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/settings/security'), text: 'Re-enable 2FA', color: '#f59e0b' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/settings/security',
+        text: 'Re-enable 2FA',
+        color: '#f59e0b'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -1772,7 +2024,14 @@ const MFA_DISABLED = ({ name, username, device, time, timestamp, appUrl: _appUrl
  * SESSION_EXPIRED Email Template
  * Sent when: Your session has expired. Please log in again.
  */
-const SESSION_EXPIRED = ({ username, device, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const SESSION_EXPIRED = ({
+  username,
+  device,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Session Expired`,
     html: buildEmailHTML({
@@ -1795,7 +2054,7 @@ const SESSION_EXPIRED = ({ username, device, timestamp, appUrl: _appUrl = appUrl
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/login'),
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/login',
         text: 'Log In Again',
         color: '#6b7280'
       },
@@ -1809,7 +2068,14 @@ const SESSION_EXPIRED = ({ username, device, timestamp, appUrl: _appUrl = appUrl
  * PRIVACY_POLICY_UPDATED Email Template
  * Sent when: Our privacy policy has been updated.
  */
-const PRIVACY_POLICY_UPDATED = ({ effectiveDate, changesUrl, documentUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const PRIVACY_POLICY_UPDATED = ({
+  effectiveDate,
+  changesUrl,
+  documentUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Privacy Policy Updated`,
     html: buildEmailHTML({
@@ -1839,7 +2105,7 @@ const PRIVACY_POLICY_UPDATED = ({ effectiveDate, changesUrl, documentUrl, appUrl
         </p>
       `,
       ctaButton: {
-        url: documentUrl || changesUrl || (ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/legal')),
+        url: documentUrl || changesUrl || (ctaPath ? _appUrl + ctaPath : _appUrl + '/legal'),
         text: 'View Changes',
         color: '#3b82f6'
       },
@@ -1853,7 +2119,14 @@ const PRIVACY_POLICY_UPDATED = ({ effectiveDate, changesUrl, documentUrl, appUrl
  * TERMS_OF_SERVICE_UPDATED Email Template
  * Sent when: Our terms of service have been updated.
  */
-const TERMS_OF_SERVICE_UPDATED = ({ effectiveDate, changesUrl, documentUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const TERMS_OF_SERVICE_UPDATED = ({
+  effectiveDate,
+  changesUrl,
+  documentUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Terms of Service Updated`,
     html: buildEmailHTML({
@@ -1883,7 +2156,7 @@ const TERMS_OF_SERVICE_UPDATED = ({ effectiveDate, changesUrl, documentUrl, appU
         </p>
       `,
       ctaButton: {
-        url: documentUrl || changesUrl || (ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/legal')),
+        url: documentUrl || changesUrl || (ctaPath ? _appUrl + ctaPath : _appUrl + '/legal'),
         text: 'View Changes',
         color: '#3b82f6'
       },
@@ -1893,7 +2166,16 @@ const TERMS_OF_SERVICE_UPDATED = ({ effectiveDate, changesUrl, documentUrl, appU
   };
 };
 
-const ORG_CREATED = ({ orgName, orgId, adminName, adminEmail, createdAt, planName, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const ORG_CREATED = ({
+  orgName,
+  orgId,
+  adminName,
+  adminEmail,
+  createdAt,
+  planName,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   return {
     subject: `Organization "${orgName}" Created Successfully`,
     html: buildEmailHTML({
@@ -1950,7 +2232,15 @@ const ORG_CREATED = ({ orgName, orgId, adminName, adminEmail, createdAt, planNam
  * ORG_UPDATED Email Template
  * Sent when: Organization details have been updated
  */
-const ORG_UPDATED = ({ orgName, orgId, updatedBy, updatedFields, updatedAt, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const ORG_UPDATED = ({
+  orgName,
+  orgId,
+  updatedBy,
+  updatedFields,
+  updatedAt,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   const fieldsHTML =
     updatedFields && updatedFields.length > 0
       ? updatedFields.map(field => `<li style="margin:4px 0;">${field}</li>`).join('')
@@ -2004,7 +2294,16 @@ const ORG_UPDATED = ({ orgName, orgId, updatedBy, updatedFields, updatedAt, appU
  * ORG_DELETED Email Template
  * Sent when: An organization has been permanently deleted
  */
-const ORG_DELETED = ({ orgName, orgId, deletedBy, deletedAt, reason, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const ORG_DELETED = ({
+  orgName,
+  orgId,
+  deletedBy,
+  deletedAt,
+  reason,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Organization "${orgName}" Deleted`,
     html: buildEmailHTML({
@@ -2041,7 +2340,7 @@ const ORG_DELETED = ({ orgName, orgId, deletedBy, deletedAt, reason, appUrl: _ap
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : `${_appUrl}/support`,
+        url: ctaPath ? _appUrl + ctaPath : `${_appUrl}/support`,
         text: 'Contact Support',
         color: '#dc2626'
       },
@@ -2249,7 +2548,7 @@ const ORG_MEMBER_REMOVED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : `${_appUrl}/support`,
+        url: ctaPath ? _appUrl + ctaPath : `${_appUrl}/support`,
         text: 'Contact Support',
         color: '#dc2626'
       },
@@ -2679,7 +2978,16 @@ const ORG_API_KEY_REVOKED = ({
  * ORG_DOMAIN_VERIFIED Email Template
  * Sent when: Organization domain has been verified
  */
-const ORG_DOMAIN_VERIFIED = ({ orgName, orgId, domain, verifiedBy, verifiedAt, benefits, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const ORG_DOMAIN_VERIFIED = ({
+  orgName,
+  orgId,
+  domain,
+  verifiedBy,
+  verifiedAt,
+  benefits,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   const benefitsHTML =
     benefits && benefits.length > 0
       ? benefits.map(benefit => `<li style="margin:4px 0;">✓ ${benefit}</li>`).join('')
@@ -2736,7 +3044,17 @@ const ORG_DOMAIN_VERIFIED = ({ orgName, orgId, domain, verifiedBy, verifiedAt, b
  * ORG_DOMAIN_UNVERIFIED Email Template
  * Sent when: Organization domain verification has failed or been removed
  */
-const ORG_DOMAIN_UNVERIFIED = ({ orgName, orgId, domain, reason, unverifiedBy, unverifiedAt, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const ORG_DOMAIN_UNVERIFIED = ({
+  orgName,
+  orgId,
+  domain,
+  reason,
+  unverifiedBy,
+  unverifiedAt,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: `Domain Verification Lost: ${domain}`,
     html: buildEmailHTML({
@@ -3186,7 +3504,12 @@ const USER_EMAIL_VERIFIED = ({ username }) => {
 /**
  * passwordResetRequestTemplate - Reset Your Password
  */
-const passwordResetRequestTemplate = ({ resetToken, username, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const passwordResetRequestTemplate = ({
+  resetToken,
+  username,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   const resetUrl = `${_appUrl}/auth/reset-password/${resetToken}`;
   return {
     subject: 'Reset Your Password',
@@ -3221,7 +3544,12 @@ const passwordResetRequestTemplate = ({ resetToken, username, appUrl: _appUrl = 
 /**
  * passwordResetSuccessTemplate - Password Reset Successful
  */
-const passwordResetSuccessTemplate = ({ username, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const passwordResetSuccessTemplate = ({
+  username,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: 'Password Reset Successful',
     html: buildEmailHTML({
@@ -3242,7 +3570,11 @@ const passwordResetSuccessTemplate = ({ username, appUrl: _appUrl = appUrl, appl
           </td></tr>
         </table>
       `,
-      primaryCTA: { url: ctaPath ? (_appUrl + ctaPath) : `${_appUrl}/login`, text: 'Log In Now', color: '#10b981' },
+      primaryCTA: {
+        url: ctaPath ? _appUrl + ctaPath : `${_appUrl}/login`,
+        text: 'Log In Now',
+        color: '#10b981'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -3252,7 +3584,12 @@ const passwordResetSuccessTemplate = ({ username, appUrl: _appUrl = appUrl, appl
 /**
  * passwordChangedSuccessTemplate - Password Changed Successfully
  */
-const passwordChangedSuccessTemplate = ({ username, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const passwordChangedSuccessTemplate = ({
+  username,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   return {
     subject: 'Your Password Was Changed',
     html: buildEmailHTML({
@@ -3274,7 +3611,11 @@ const passwordChangedSuccessTemplate = ({ username, appUrl: _appUrl = appUrl, ap
         </table>
         <p style="margin:16px 0 0 0;color:#4b5563;">Your account security is our top priority.</p>
       `,
-      primaryCTA: { url: ctaPath ? (_appUrl + ctaPath) : `${_appUrl}/support`, text: 'Contact Support', color: '#6b7280' },
+      primaryCTA: {
+        url: ctaPath ? _appUrl + ctaPath : `${_appUrl}/support`,
+        text: 'Contact Support',
+        color: '#6b7280'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -3284,7 +3625,12 @@ const passwordChangedSuccessTemplate = ({ username, appUrl: _appUrl = appUrl, ap
 /**
  * accountLockedTemplate - Account Temporarily Locked
  */
-const accountLockedTemplate = ({ username, unlockLink, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const accountLockedTemplate = ({
+  username,
+  unlockLink,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   return {
     subject: 'Account Temporarily Locked',
     html: buildEmailHTML({
@@ -3320,7 +3666,14 @@ const accountLockedTemplate = ({ username, unlockLink, appUrl: _appUrl = appUrl,
 /**
  * suspiciousLoginTemplate - Suspicious Login Detected
  */
-const suspiciousLoginTemplate = ({ username, location, device, resetLink, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName }) => {
+const suspiciousLoginTemplate = ({
+  username,
+  location,
+  device,
+  resetLink,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName
+}) => {
   return {
     subject: '⚠️ Suspicious Login Detected on Your Account',
     html: buildEmailHTML({
@@ -3494,7 +3847,11 @@ const paymentSuccessTemplate = ({ username, amount, invoiceLink }) => {
 /**
  * orderConfirmationTemplate - Order Confirmation
  */
-const orderConfirmationTemplate = ({ username, orderId, items, total ,
+const orderConfirmationTemplate = ({
+  username,
+  orderId,
+  items,
+  total,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -3525,7 +3882,7 @@ const orderConfirmationTemplate = ({ username, orderId, items, total ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#3b82f6'
       },
@@ -3937,7 +4294,10 @@ const giftCardReceivedTemplate = ({ username, sender, amount, redeemCode }) => {
 /**
  * reviewRequestTemplate - Review Request
  */
-const reviewRequestTemplate = ({ username, product, reviewLink ,
+const reviewRequestTemplate = ({
+  username,
+  product,
+  reviewLink,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -3968,7 +4328,7 @@ const reviewRequestTemplate = ({ username, product, reviewLink ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#2563eb'
       },
@@ -4879,7 +5239,15 @@ const accountVerifiedTemplate = ({ username }) => {
 /**
  * logoutAllDevicesTemplate - Logged Out From All Devices
  */
-const logoutAllDevicesTemplate = ({ name, username, time, timestamp, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
+const logoutAllDevicesTemplate = ({
+  name,
+  username,
+  time,
+  timestamp,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaPath = null
+}) => {
   const displayName = name || username || 'User';
   const displayTime = time || timestamp;
   return {
@@ -4908,7 +5276,11 @@ const logoutAllDevicesTemplate = ({ name, username, time, timestamp, appUrl: _ap
           </td></tr>
         </table>
       `,
-      ctaButton: { url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/login'), text: 'Sign In Again', color: '#2563eb' },
+      ctaButton: {
+        url: ctaPath ? _appUrl + ctaPath : _appUrl + '/login',
+        text: 'Sign In Again',
+        color: '#2563eb'
+      },
       footerNote: "Never share your credentials. We'll never ask for your password."
     }),
     attachments: []
@@ -5055,7 +5427,9 @@ const phoneNumberChangeRequestTemplate = ({
 /**
  * phoneNumberChangeConfirmationTemplate - Phone Number Updated Successfully
  */
-const phoneNumberChangeConfirmationTemplate = ({ username, updatedPhone ,
+const phoneNumberChangeConfirmationTemplate = ({
+  username,
+  updatedPhone,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -5086,7 +5460,7 @@ const phoneNumberChangeConfirmationTemplate = ({ username, updatedPhone ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#3b82f6'
       },
@@ -5596,7 +5970,8 @@ const passwordStrengthWarningTemplate = ({ username }) => {
 /**
  * accountMergeConfirmationTemplate - Accounts Merged Successfully
  */
-const accountMergeConfirmationTemplate = ({ username ,
+const accountMergeConfirmationTemplate = ({
+  username,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -5627,7 +6002,7 @@ const accountMergeConfirmationTemplate = ({ username ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#3b82f6'
       },
@@ -6170,7 +6545,10 @@ const orderCanceledByStoreTemplate = ({ username, orderId, reason }) => {
 /**
  * preOrderConfirmationTemplate - Pre-Order Confirmation
  */
-const preOrderConfirmationTemplate = ({ username, productName, releaseDate ,
+const preOrderConfirmationTemplate = ({
+  username,
+  productName,
+  releaseDate,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -6201,7 +6579,7 @@ const preOrderConfirmationTemplate = ({ username, productName, releaseDate ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#3b82f6'
       },
@@ -6247,7 +6625,9 @@ const preOrderShippedTemplate = ({ username, productName }) => {
 /**
  * digitalDownloadReadyTemplate - Digital Download Ready
  */
-const digitalDownloadReadyTemplate = ({ username, downloadLink ,
+const digitalDownloadReadyTemplate = ({
+  username,
+  downloadLink,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -6278,7 +6658,7 @@ const digitalDownloadReadyTemplate = ({ username, downloadLink ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#2563eb'
       },
@@ -6291,7 +6671,8 @@ const digitalDownloadReadyTemplate = ({ username, downloadLink ,
 /**
  * customOrderConfirmedTemplate - Custom Order Confirmed
  */
-const customOrderConfirmedTemplate = ({ username ,
+const customOrderConfirmedTemplate = ({
+  username,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -6322,7 +6703,7 @@ const customOrderConfirmedTemplate = ({ username ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#3b82f6'
       },
@@ -6434,7 +6815,10 @@ const returnRequestReceivedTemplate = ({ username, orderId }) => {
 /**
  * returnApprovedTemplate - Return Approved
  */
-const returnApprovedTemplate = ({ username, orderId, instructions ,
+const returnApprovedTemplate = ({
+  username,
+  orderId,
+  instructions,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -6465,7 +6849,7 @@ const returnApprovedTemplate = ({ username, orderId, instructions ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#10b981'
       },
@@ -6544,7 +6928,10 @@ const refundProcessedTemplate = ({ username, orderId }) => {
 /**
  * exchangeApprovedTemplate - Exchange Approved
  */
-const exchangeApprovedTemplate = ({ username, orderId, nextSteps ,
+const exchangeApprovedTemplate = ({
+  username,
+  orderId,
+  nextSteps,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -6575,7 +6962,7 @@ const exchangeApprovedTemplate = ({ username, orderId, nextSteps ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#10b981'
       },
@@ -7184,7 +7571,9 @@ const paymentMethodUpdatedTemplate = ({ username }) => {
 /**
  * subscriptionPauseConfirmationTemplate - Subscription Pause Confirmation - ${subscriptionName}
  */
-const subscriptionPauseConfirmationTemplate = ({ username, subscriptionName ,
+const subscriptionPauseConfirmationTemplate = ({
+  username,
+  subscriptionName,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -7215,7 +7604,7 @@ const subscriptionPauseConfirmationTemplate = ({ username, subscriptionName ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#3b82f6'
       },
@@ -7725,7 +8114,8 @@ const csrStoriesTemplate = ({ username }) => {
 /**
  * appDownloadInvitationTemplate - Get the Most Out of Our App
  */
-const appDownloadInvitationTemplate = ({ username ,
+const appDownloadInvitationTemplate = ({
+  username,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -7756,7 +8146,7 @@ const appDownloadInvitationTemplate = ({ username ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#2563eb'
       },
@@ -8271,7 +8661,10 @@ const productDisabledAdminTemplate = ({ adminName, productId, productName }) => 
 /**
  * newReviewSubmittedAdminTemplate - New Review Submitted for ${productName}
  */
-const newReviewSubmittedAdminTemplate = ({ adminName, productName, reviewId ,
+const newReviewSubmittedAdminTemplate = ({
+  adminName,
+  productName,
+  reviewId,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -8302,7 +8695,7 @@ const newReviewSubmittedAdminTemplate = ({ adminName, productName, reviewId ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/action`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/action`),
         text: 'Take Action',
         color: '#6b7280'
       },
@@ -9274,8 +9667,7 @@ const PAYMENT_FAILED = ({
   transactionId,
   paymentMethod,
   date,
-  failureReason
-,
+  failureReason,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9309,7 +9701,7 @@ const PAYMENT_FAILED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/billing/payment-methods`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/billing/payment-methods`),
         text: 'Update Payment Info',
         color: '#dc2626'
       },
@@ -9391,7 +9783,12 @@ const PAYMENT_REFUNDED = ({ username, amount, transactionId, refundId, refundDat
  * INVOICE_GENERATED Email Template
  * Sent when: An invoice has been generated
  */
-const INVOICE_GENERATED = ({ username, invoiceNumber, dueDate, amount, invoiceUrl ,
+const INVOICE_GENERATED = ({
+  username,
+  invoiceNumber,
+  dueDate,
+  amount,
+  invoiceUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9462,7 +9859,11 @@ const INVOICE_PAID = ({ username, invoiceNumber, paymentDate, amount }) => {
  * INVOICE_OVERDUE Email Template
  * Sent when: An invoice payment is overdue
  */
-const INVOICE_OVERDUE = ({ username, invoiceNumber, dueDate, amount ,
+const INVOICE_OVERDUE = ({
+  username,
+  invoiceNumber,
+  dueDate,
+  amount,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9534,7 +9935,10 @@ const INVOICE_CANCELLED = ({ username, invoiceNumber, cancelledAt, reason }) => 
  * BILLING_INFO_UPDATED Email Template
  * Sent when: Billing information has been updated
  */
-const BILLING_INFO_UPDATED = ({ username, updatedFields, updatedAt ,
+const BILLING_INFO_UPDATED = ({
+  username,
+  updatedFields,
+  updatedAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9568,7 +9972,7 @@ const BILLING_INFO_UPDATED = ({ username, updatedFields, updatedAt ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/billing`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/billing`),
         text: 'Manage Billing',
         color: '#ec4899'
       },
@@ -9582,7 +9986,11 @@ const BILLING_INFO_UPDATED = ({ username, updatedFields, updatedAt ,
  * AUTO_RENEWAL_REMINDER Email Template
  * Sent when: Subscription auto-renewal is coming up
  */
-const AUTO_RENEWAL_REMINDER = ({ username, subscriptionName, renewalDate, amount ,
+const AUTO_RENEWAL_REMINDER = ({
+  username,
+  subscriptionName,
+  renewalDate,
+  amount,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9609,7 +10017,7 @@ const AUTO_RENEWAL_REMINDER = ({ username, subscriptionName, renewalDate, amount
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/subscriptions`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/subscriptions`),
         text: 'Manage Subscription',
         color: '#3b82f6'
       },
@@ -9623,7 +10031,10 @@ const AUTO_RENEWAL_REMINDER = ({ username, subscriptionName, renewalDate, amount
  * SUBSCRIPTION_STARTED Email Template
  * Sent when: Subscription has started
  */
-const SUBSCRIPTION_STARTED = ({ username, subscriptionName, startDate ,
+const SUBSCRIPTION_STARTED = ({
+  username,
+  subscriptionName,
+  startDate,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9650,7 +10061,7 @@ const SUBSCRIPTION_STARTED = ({ username, subscriptionName, startDate ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/subscriptions`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/subscriptions`),
         text: 'View Subscription',
         color: '#10b981'
       },
@@ -9664,7 +10075,10 @@ const SUBSCRIPTION_STARTED = ({ username, subscriptionName, startDate ,
  * SUBSCRIPTION_CANCELLED Email Template
  * Sent when: Subscription has been cancelled
  */
-const SUBSCRIPTION_CANCELLED = ({ username, subscriptionName, cancelledAt ,
+const SUBSCRIPTION_CANCELLED = ({
+  username,
+  subscriptionName,
+  cancelledAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9691,7 +10105,7 @@ const SUBSCRIPTION_CANCELLED = ({ username, subscriptionName, cancelledAt ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/subscriptions`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/subscriptions`),
         text: 'Restart Subscription',
         color: '#dc2626'
       },
@@ -9704,7 +10118,12 @@ const SUBSCRIPTION_CANCELLED = ({ username, subscriptionName, cancelledAt ,
  * CHARGEBACK_INITIATED Email Template
  * Sent when: A chargeback has been initiated on a payment
  */
-const CHARGEBACK_INITIATED = ({ username, transactionId, amount, chargebackDate, reason ,
+const CHARGEBACK_INITIATED = ({
+  username,
+  transactionId,
+  amount,
+  chargebackDate,
+  reason,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9732,7 +10151,7 @@ const CHARGEBACK_INITIATED = ({ username, transactionId, amount, chargebackDate,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/support/chargebacks`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/support/chargebacks`),
         text: 'View Chargeback Details',
         color: '#f59e0b'
       },
@@ -9746,7 +10165,12 @@ const CHARGEBACK_INITIATED = ({ username, transactionId, amount, chargebackDate,
  * CHARGEBACK_RESOLVED Email Template
  * Sent when: A chargeback has been resolved
  */
-const CHARGEBACK_RESOLVED = ({ username, transactionId, amount, resolutionDate, outcome ,
+const CHARGEBACK_RESOLVED = ({
+  username,
+  transactionId,
+  amount,
+  resolutionDate,
+  outcome,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9776,7 +10200,7 @@ const CHARGEBACK_RESOLVED = ({ username, transactionId, amount, resolutionDate, 
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/support/chargebacks`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/support/chargebacks`),
         text: 'View Resolution Details',
         color: '#10b981'
       },
@@ -9789,7 +10213,11 @@ const CHARGEBACK_RESOLVED = ({ username, transactionId, amount, resolutionDate, 
  * SUBSCRIPTION_RENEWED Email Template
  * Sent when: A subscription has been renewed successfully
  */
-const SUBSCRIPTION_RENEWED = ({ username, subscriptionName, renewalDate, amount ,
+const SUBSCRIPTION_RENEWED = ({
+  username,
+  subscriptionName,
+  renewalDate,
+  amount,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9819,7 +10247,7 @@ const SUBSCRIPTION_RENEWED = ({ username, subscriptionName, renewalDate, amount 
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/subscriptions`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/subscriptions`),
         text: 'Manage Subscription',
         color: '#10b981'
       },
@@ -9840,7 +10268,11 @@ const SUBSCRIPTION_RENEWED = ({ username, subscriptionName, renewalDate, amount 
  * CART_CREATED Email Template
  * Sent when: A new shopping cart has been created
  */
-const CART_CREATED = ({ username, cartId, itemCount, createdAt ,
+const CART_CREATED = ({
+  username,
+  cartId,
+  itemCount,
+  createdAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9889,7 +10321,12 @@ const CART_CREATED = ({ username, cartId, itemCount, createdAt ,
  * CART_UPDATED Email Template
  * Sent when: Shopping cart has been updated
  */
-const CART_UPDATED = ({ username, cartId, itemCount, totalAmount, updatedAt ,
+const CART_UPDATED = ({
+  username,
+  cartId,
+  itemCount,
+  totalAmount,
+  updatedAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -9938,7 +10375,13 @@ const CART_UPDATED = ({ username, cartId, itemCount, totalAmount, updatedAt ,
  * CART_ABANDONED Email Template
  * Sent when: A shopping cart has been abandoned
  */
-const CART_ABANDONED = ({ username, cartId, itemCount, items, totalAmount, abandonedAt ,
+const CART_ABANDONED = ({
+  username,
+  cartId,
+  itemCount,
+  items,
+  totalAmount,
+  abandonedAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10040,7 +10483,11 @@ const CART_ABANDONED = ({ username, cartId, itemCount, items, totalAmount, aband
  * WISHLIST_CREATED Email Template
  * Sent when: A wishlist has been created
  */
-const WISHLIST_CREATED = ({ username, wishlistId, itemCount, createdAt ,
+const WISHLIST_CREATED = ({
+  username,
+  wishlistId,
+  itemCount,
+  createdAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10089,7 +10536,11 @@ const WISHLIST_CREATED = ({ username, wishlistId, itemCount, createdAt ,
  * WISHLIST_REMINDER Email Template
  * Sent when: Reminder about saved wishlist items
  */
-const WISHLIST_REMINDER = ({ username, wishlistId, itemCount, items ,
+const WISHLIST_REMINDER = ({
+  username,
+  wishlistId,
+  itemCount,
+  items,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10154,8 +10605,7 @@ const WISHLIST_PRICE_DROP = ({
   newPrice,
   savings,
   productImage,
-  productUrl
-,
+  productUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10227,7 +10677,12 @@ const WISHLIST_PRICE_DROP = ({
  * WISHLIST_BACK_IN_STOCK Email Template
  * Sent when: A wishlist item is back in stock
  */
-const WISHLIST_BACK_IN_STOCK = ({ username, productName, productId, productImage, productUrl ,
+const WISHLIST_BACK_IN_STOCK = ({
+  username,
+  productName,
+  productId,
+  productImage,
+  productUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10350,7 +10805,12 @@ const CART_ITEM_PRICE_CHANGED = ({
  * CART_EXPIRY_NOTIFICATION Email Template
  * Sent when: Cart is about to expire
  */
-const CART_EXPIRY_NOTIFICATION = ({ username, cartId, itemCount, expiryDate, hoursRemaining ,
+const CART_EXPIRY_NOTIFICATION = ({
+  username,
+  cartId,
+  itemCount,
+  expiryDate,
+  hoursRemaining,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10410,7 +10870,13 @@ const CART_EXPIRY_NOTIFICATION = ({ username, cartId, itemCount, expiryDate, hou
  * ORDER_CREATED Email Template
  * Sent when: A new order has been created
  */
-const ORDER_CREATED = ({ username, orderId, orderDate, items, totalAmount, shippingAddress ,
+const ORDER_CREATED = ({
+  username,
+  orderId,
+  orderDate,
+  items,
+  totalAmount,
+  shippingAddress,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10504,7 +10970,11 @@ const ORDER_CREATED = ({ username, orderId, orderDate, items, totalAmount, shipp
  * ORDER_CONFIRMED Email Template
  * Sent when: Order has been confirmed and payment verified
  */
-const ORDER_CONFIRMED = ({ username, orderId, estimatedDelivery, totalAmount ,
+const ORDER_CONFIRMED = ({
+  username,
+  orderId,
+  estimatedDelivery,
+  totalAmount,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10560,8 +11030,7 @@ const ORDER_SHIPPED = ({
   trackingNumber,
   carrier,
   estimatedDelivery,
-  trackingUrl
-,
+  trackingUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10612,7 +11081,11 @@ const ORDER_SHIPPED = ({
  * ORDER_DELIVERED Email Template
  * Sent when: Order has been delivered
  */
-const ORDER_DELIVERED = ({ username, orderId, deliveryDate, deliveryAddress ,
+const ORDER_DELIVERED = ({
+  username,
+  orderId,
+  deliveryDate,
+  deliveryAddress,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10662,7 +11135,11 @@ const ORDER_DELIVERED = ({ username, orderId, deliveryDate, deliveryAddress ,
  * ORDER_DELAYED Email Template
  * Sent when: Order delivery is delayed
  */
-const ORDER_DELAYED = ({ username, orderId, reason, newEstimatedDelivery ,
+const ORDER_DELAYED = ({
+  username,
+  orderId,
+  reason,
+  newEstimatedDelivery,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10853,7 +11330,11 @@ const ORDER_REFUNDED = ({
  * ORDER_PAYMENT_PENDING Email Template
  * Sent when: Order payment is pending verification
  */
-const ORDER_PAYMENT_PENDING = ({ username, orderId, amount, paymentMethod ,
+const ORDER_PAYMENT_PENDING = ({
+  username,
+  orderId,
+  amount,
+  paymentMethod,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -10902,7 +11383,12 @@ const ORDER_PAYMENT_PENDING = ({ username, orderId, amount, paymentMethod ,
  * ORDER_PAYMENT_FAILED Email Template
  * Sent when: Order payment has failed
  */
-const ORDER_PAYMENT_FAILED = ({ username, orderId, amount, paymentMethod, failureReason ,
+const ORDER_PAYMENT_FAILED = ({
+  username,
+  orderId,
+  amount,
+  paymentMethod,
+  failureReason,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -11039,8 +11525,7 @@ const CUSTOM_ORDER_CONFIRMED = ({
   orderId,
   customDetails,
   estimatedCompletion,
-  totalAmount
-,
+  totalAmount,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -11289,7 +11774,11 @@ const RETURN_APPROVED = ({
  * RETURN_REJECTED Email Template
  * Sent when: Return request has been rejected
  */
-const RETURN_REJECTED = ({ username, orderId, returnId, rejectionReason ,
+const RETURN_REJECTED = ({
+  username,
+  orderId,
+  returnId,
+  rejectionReason,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -11324,7 +11813,7 @@ const RETURN_REJECTED = ({ username, orderId, returnId, rejectionReason ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/support/returns`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/support/returns`),
         text: 'Contact Support',
         color: '#dc2626'
       },
@@ -11398,8 +11887,7 @@ const EXCHANGE_REQUESTED = ({
   exchangeId,
   originalItem,
   requestedItem,
-  requestDate
-,
+  requestDate,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -11461,8 +11949,7 @@ const EXCHANGE_APPROVED = ({
   exchangeId,
   originalItem,
   newItem,
-  returnLabel
-,
+  returnLabel,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -11526,7 +12013,11 @@ const EXCHANGE_APPROVED = ({
  * EXCHANGE_REJECTED Email Template
  * Sent when: Exchange request has been rejected
  */
-const EXCHANGE_REJECTED = ({ username, orderId, exchangeId, rejectionReason ,
+const EXCHANGE_REJECTED = ({
+  username,
+  orderId,
+  exchangeId,
+  rejectionReason,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -11561,7 +12052,7 @@ const EXCHANGE_REJECTED = ({ username, orderId, exchangeId, rejectionReason ,
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/support/exchanges`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/support/exchanges`),
         text: 'Contact Support',
         color: '#dc2626'
       },
@@ -11657,7 +12148,7 @@ const SYSTEM_ALERT = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/system/alerts`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/system/alerts`),
         text: 'View Alert Details',
         color: severityColor
       },
@@ -11736,7 +12227,7 @@ const MAINTENANCE_SCHEDULED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/system/status`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/system/status`),
         text: 'View System Status',
         color: '#3b82f6'
       },
@@ -11750,7 +12241,11 @@ const MAINTENANCE_SCHEDULED = ({
  * MAINTENANCE_STARTED Email Template
  * Sent when: Scheduled maintenance has begun
  */
-const MAINTENANCE_STARTED = ({ maintenanceType, startedAt, estimatedEnd, affectedServices ,
+const MAINTENANCE_STARTED = ({
+  maintenanceType,
+  startedAt,
+  estimatedEnd,
+  affectedServices,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -11801,7 +12296,7 @@ const MAINTENANCE_STARTED = ({ maintenanceType, startedAt, estimatedEnd, affecte
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/system/status`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/system/status`),
         text: 'Check Status',
         color: '#f59e0b'
       },
@@ -11922,7 +12417,7 @@ const DATA_BACKUP_COMPLETED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/backups`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/backups`),
         text: 'View Backup Details',
         color: statusColor
       },
@@ -11936,7 +12431,12 @@ const DATA_BACKUP_COMPLETED = ({
  * SERVER_RESTARTED Email Template
  * Sent when: Server has been restarted
  */
-const SERVER_RESTARTED = ({ serverName, restartReason, restartedAt, uptime, services ,
+const SERVER_RESTARTED = ({
+  serverName,
+  restartReason,
+  restartedAt,
+  uptime,
+  services,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12006,8 +12506,7 @@ const SERVER_OVERLOADED = ({
   diskUsage,
   detectedAt,
   threshold,
-  recommendation
-,
+  recommendation,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12135,7 +12634,7 @@ const DEPLOYMENT_STARTED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/deployments`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/deployments`),
         text: 'View Deployment Status',
         color: '#3b82f6'
       },
@@ -12207,7 +12706,7 @@ const DEPLOYMENT_COMPLETED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/deployments`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/deployments`),
         text: 'View Deployment Details',
         color: '#10b981'
       },
@@ -12227,8 +12726,7 @@ const DEPLOYMENT_FAILED = ({
   deployedBy,
   failedAt,
   errorMessage,
-  rollbackStatus
-,
+  rollbackStatus,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12289,7 +12787,7 @@ const DEPLOYMENT_FAILED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/deployments/logs`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/deployments/logs`),
         text: 'View Deployment Logs',
         color: '#dc2626'
       },
@@ -12303,7 +12801,12 @@ const DEPLOYMENT_FAILED = ({
  * CONFIGURATION_CHANGED Email Template
  * Sent when: System configuration has been changed
  */
-const CONFIGURATION_CHANGED = ({ configType, changedBy, changedAt, changes, environment ,
+const CONFIGURATION_CHANGED = ({
+  configType,
+  changedBy,
+  changedAt,
+  changes,
+  environment,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12354,7 +12857,7 @@ const CONFIGURATION_CHANGED = ({ configType, changedBy, changedAt, changes, envi
         </table>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/config`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/config`),
         text: 'View Configuration',
         color: '#8b5cf6'
       },
@@ -12373,8 +12876,7 @@ const SERVICE_OUTAGE_DETECTED = ({
   detectedAt,
   affectedUsers,
   errorDetails,
-  estimatedResolution
-,
+  estimatedResolution,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12428,7 +12930,7 @@ const SERVICE_OUTAGE_DETECTED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/status`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/status`),
         text: 'View Status Page',
         color: '#dc2626'
       },
@@ -12594,7 +13096,12 @@ const NEW_FEATURE_RELEASED = ({
  * PACKAGE_DISPATCHED Email Template
  * Sent when: Package has been dispatched from warehouse
  */
-const PACKAGE_DISPATCHED = ({ username, orderId, trackingNumber, items, dispatchedAt ,
+const PACKAGE_DISPATCHED = ({
+  username,
+  orderId,
+  trackingNumber,
+  items,
+  dispatchedAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12664,8 +13171,7 @@ const PACKAGE_IN_TRANSIT = ({
   trackingNumber,
   currentLocation,
   estimatedDelivery,
-  carrier
-,
+  carrier,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12721,8 +13227,7 @@ const PACKAGE_OUT_FOR_DELIVERY = ({
   orderId,
   trackingNumber,
   estimatedDelivery,
-  deliveryAddress
-,
+  deliveryAddress,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12779,7 +13284,12 @@ const PACKAGE_OUT_FOR_DELIVERY = ({
  * PACKAGE_DELIVERED Email Template
  * Sent when: Package has been delivered
  */
-const PACKAGE_DELIVERED = ({ username, orderId, deliveredAt, signedBy, deliveryAddress ,
+const PACKAGE_DELIVERED = ({
+  username,
+  orderId,
+  deliveredAt,
+  signedBy,
+  deliveryAddress,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12836,8 +13346,7 @@ const PACKAGE_DELAYED = ({
   trackingNumber,
   originalDelivery,
   newDelivery,
-  reason
-,
+  reason,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12889,7 +13398,12 @@ const PACKAGE_DELAYED = ({
  * PACKAGE_LOST Email Template
  * Sent when: Package has been lost
  */
-const PACKAGE_LOST = ({ username, orderId, trackingNumber, lastLocation, reportedAt ,
+const PACKAGE_LOST = ({
+  username,
+  orderId,
+  trackingNumber,
+  lastLocation,
+  reportedAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12926,7 +13440,7 @@ const PACKAGE_LOST = ({ username, orderId, trackingNumber, lastLocation, reporte
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/support/lost-package`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/support/lost-package`),
         text: 'Report Issue',
         color: '#dc2626'
       },
@@ -12946,8 +13460,7 @@ const DELIVERY_EXCEPTION = ({
   trackingNumber,
   exceptionType,
   details,
-  nextStep
-,
+  nextStep,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -12997,7 +13510,7 @@ const DELIVERY_EXCEPTION = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/support`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/support`),
         text: 'Contact Support',
         color: '#f59e0b'
       },
@@ -13017,8 +13530,7 @@ const CUSTOMS_HOLD = ({
   trackingNumber,
   holdReason,
   estimatedClearing,
-  requiredActions
-,
+  requiredActions,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13094,8 +13606,7 @@ const PROMOTION_LAUNCHED = ({
   validFrom,
   validTo,
   exclusions,
-  promoCode
-,
+  promoCode,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13145,7 +13656,7 @@ const PROMOTION_LAUNCHED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/shop`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/shop`),
         text: 'Shop Now',
         color: '#ec4899'
       },
@@ -13159,7 +13670,12 @@ const PROMOTION_LAUNCHED = ({
  * DISCOUNT_APPLIED Email Template
  * Sent when: Discount has been applied to customer account
  */
-const DISCOUNT_APPLIED = ({ username, discountAmount, discountType, expiryDate, terms ,
+const DISCOUNT_APPLIED = ({
+  username,
+  discountAmount,
+  discountType,
+  expiryDate,
+  terms,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13207,7 +13723,7 @@ const DISCOUNT_APPLIED = ({ username, discountAmount, discountType, expiryDate, 
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/shop`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/shop`),
         text: 'Start Shopping',
         color: '#10b981'
       },
@@ -13221,7 +13737,13 @@ const DISCOUNT_APPLIED = ({ username, discountAmount, discountType, expiryDate, 
  * FLASH_SALE_ANNOUNCEMENT Email Template
  * Sent when: Flash sale is announced
  */
-const FLASH_SALE_ANNOUNCEMENT = ({ saleName, startsAt, endsAt, featured, discount, urgency ,
+const FLASH_SALE_ANNOUNCEMENT = ({
+  saleName,
+  startsAt,
+  endsAt,
+  featured,
+  discount,
+  urgency,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13290,7 +13812,7 @@ const FLASH_SALE_ANNOUNCEMENT = ({ saleName, startsAt, endsAt, featured, discoun
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/flash-sale`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/flash-sale`),
         text: 'Shop Flash Sale',
         color: '#dc2626'
       },
@@ -13304,7 +13826,12 @@ const FLASH_SALE_ANNOUNCEMENT = ({ saleName, startsAt, endsAt, featured, discoun
  * LOYALTY_POINTS_EARNED Email Template
  * Sent when: Customer has earned loyalty points
  */
-const LOYALTY_POINTS_EARNED = ({ username, pointsEarned, totalPoints, reason, redeemValue ,
+const LOYALTY_POINTS_EARNED = ({
+  username,
+  pointsEarned,
+  totalPoints,
+  reason,
+  redeemValue,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13341,7 +13868,7 @@ const LOYALTY_POINTS_EARNED = ({ username, pointsEarned, totalPoints, reason, re
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/loyalty`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/loyalty`),
         text: 'View Rewards',
         color: '#f59e0b'
       },
@@ -13360,8 +13887,7 @@ const LOYALTY_POINTS_REDEEMED = ({
   pointsRedeemed,
   remainingPoints,
   redemptionValue,
-  rewardDescription
-,
+  rewardDescription,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13399,7 +13925,7 @@ const LOYALTY_POINTS_REDEEMED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/loyalty`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/loyalty`),
         text: 'View Account',
         color: '#10b981'
       },
@@ -13419,8 +13945,7 @@ const NEW_PRODUCT_LAUNCH = ({
   productImage,
   description,
   launchDate,
-  specialOffer
-,
+  specialOffer,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13490,8 +14015,7 @@ const CUSTOMER_MILESTONE = ({
   milestoneType,
   milestoneValue,
   bonus,
-  celebrationMessage
-,
+  celebrationMessage,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13540,7 +14064,7 @@ const CUSTOMER_MILESTONE = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/shop`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/shop`),
         text: 'Continue Shopping',
         color: '#ec4899'
       },
@@ -13554,7 +14078,11 @@ const CUSTOMER_MILESTONE = ({
  * REVIEW_REMINDER Email Template
  * Sent when: Reminding customer to leave a review
  */
-const REVIEW_REMINDER = ({ username, productName, orderId, purchaseDate ,
+const REVIEW_REMINDER = ({
+  username,
+  productName,
+  orderId,
+  purchaseDate,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13612,8 +14140,7 @@ const EVENT_INVITATION = ({
   eventTime,
   location,
   description,
-  rsvpUrl
-,
+  rsvpUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13665,7 +14192,12 @@ const EVENT_INVITATION = ({
  * HOLIDAY_GREETINGS Email Template
  * Sent when: Sending holiday greetings
  */
-const HOLIDAY_GREETINGS = ({ username, holidayName, greeting, specialOffer, endDate ,
+const HOLIDAY_GREETINGS = ({
+  username,
+  holidayName,
+  greeting,
+  specialOffer,
+  endDate,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13702,7 +14234,7 @@ const HOLIDAY_GREETINGS = ({ username, holidayName, greeting, specialOffer, endD
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/shop`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/shop`),
         text: 'Shop Holiday Deals',
         color: '#dc2626'
       },
@@ -13727,8 +14259,7 @@ const PRODUCT_CREATED = ({
   category,
   pricing,
   createdAt,
-  createdBy
-,
+  createdBy,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13779,7 +14310,12 @@ const PRODUCT_CREATED = ({
  * PRODUCT_UPDATED Email Template
  * Sent when: Product details are updated
  */
-const PRODUCT_UPDATED = ({ productName, productId, updatedFields, updatedBy, updatedAt ,
+const PRODUCT_UPDATED = ({
+  productName,
+  productId,
+  updatedFields,
+  updatedBy,
+  updatedAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13891,8 +14427,7 @@ const PRODUCT_FEATURED = ({
   featureType,
   startDate,
   endDate,
-  placement
-,
+  placement,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -13947,8 +14482,7 @@ const PRODUCT_BACK_IN_STOCK = ({
   productId,
   quantityRestocked,
   restockDate,
-  productUrl
-,
+  productUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14071,7 +14605,11 @@ const PRODUCT_REVIEWED = ({
  * PRODUCT_OUT_OF_STOCK Email Template
  * Sent when: Product goes out of stock
  */
-const PRODUCT_OUT_OF_STOCK = ({ productName, productId, lastInStock, expectedRestock ,
+const PRODUCT_OUT_OF_STOCK = ({
+  productName,
+  productId,
+  lastInStock,
+  expectedRestock,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14118,7 +14656,12 @@ const PRODUCT_OUT_OF_STOCK = ({ productName, productId, lastInStock, expectedRes
  * PRODUCT_ARCHIVED Email Template
  * Sent when: Product is archived
  */
-const PRODUCT_ARCHIVED = ({ productName, productId, archivedBy, reason, archivedAt ,
+const PRODUCT_ARCHIVED = ({
+  productName,
+  productId,
+  archivedBy,
+  reason,
+  archivedAt,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14176,8 +14719,7 @@ const STOCK_LOW = ({
   currentStock,
   minimumThreshold,
   recommendedAction,
-  productId
-,
+  productId,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14243,8 +14785,7 @@ const STOCK_CRITICAL = ({
   currentStock,
   criticalThreshold,
   urgentAction,
-  productId
-,
+  productId,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14311,8 +14852,7 @@ const STOCK_REPLENISHED = ({
   newStock,
   supplier,
   expectedDelivery,
-  productId
-,
+  productId,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14367,8 +14907,7 @@ const INVENTORY_AUDIT_COMPLETED = ({
   completedAt,
   discrepancies,
   variance,
-  actionItems
-,
+  actionItems,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14416,7 +14955,7 @@ const INVENTORY_AUDIT_COMPLETED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/audit-reports`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/audit-reports`),
         text: 'View Full Report',
         color: '#8b5cf6'
       },
@@ -14508,8 +15047,7 @@ const BATCH_EXPIRING_SOON = ({
   expiryDate,
   daysRemaining,
   currentStock,
-  recommendation
-,
+  recommendation,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14558,7 +15096,7 @@ const BATCH_EXPIRING_SOON = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/admin/inventory`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/admin/inventory`),
         text: 'View Inventory',
         color: '#f59e0b'
       },
@@ -14696,7 +15234,12 @@ const MESSAGE_SENT = ({ senderName, recipientName, messagePreview, sentAt, messa
  * MESSAGE_RECEIVED Email Template
  * Sent when: User receives a message from another user
  */
-const MESSAGE_RECEIVED = ({ recipientName, senderName, messagePreview, receivedAt, replyUrl ,
+const MESSAGE_RECEIVED = ({
+  recipientName,
+  senderName,
+  messagePreview,
+  receivedAt,
+  replyUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14863,8 +15406,7 @@ const COMMENT_POSTED = ({
   contentType,
   commentPreview,
   postedAt,
-  commentUrl
-,
+  commentUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -14928,8 +15470,7 @@ const COMMENT_REPLIED = ({
   originalComment,
   replyContent,
   repliedAt,
-  replyUrl
-,
+  replyUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -15134,7 +15675,13 @@ const PUSH_NOTIFICATION_SENT = ({
  * CHAT_STARTED Email Template
  * Sent when: Chat session is initiated
  */
-const CHAT_STARTED = ({ username, chatInitiator, topic, chatId, startedAt, joinUrl ,
+const CHAT_STARTED = ({
+  username,
+  chatInitiator,
+  topic,
+  chatId,
+  startedAt,
+  joinUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -15253,7 +15800,12 @@ const CHAT_ENDED = ({ username, chatWith, topic, chatId, endedAt, duration, summ
  * DAILY_REPORT_READY Email Template
  * Sent when: Daily analytics report is ready
  */
-const DAILY_REPORT_READY = ({ username, reportDate, metrics, highlights, reportUrl ,
+const DAILY_REPORT_READY = ({
+  username,
+  reportDate,
+  metrics,
+  highlights,
+  reportUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -15570,7 +16122,7 @@ const DATA_TREND_ALERT = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/analytics/trends`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/analytics/trends`),
         text: 'View Detailed Analysis',
         color: trendColor
       },
@@ -15591,8 +16143,7 @@ const TRAFFIC_SPIKE = ({
   normalTraffic,
   cause,
   duration,
-  actionUrl
-,
+  actionUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -15671,8 +16222,7 @@ const CONVERSION_RATE_DROP = ({
   percentageDrop,
   impact,
   possibleCauses,
-  actionUrl
-,
+  actionUrl,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -15890,7 +16440,7 @@ const KPI_THRESHOLD_BREACHED = ({
         </p>
       `,
       ctaButton: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/analytics/kpis`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/analytics/kpis`),
         text: 'View KPI Dashboard',
         color: breachColor
       },
@@ -15964,8 +16514,7 @@ const INQUIRY_NOTIFICATION = ({
   description,
   requirements,
   submittedAt,
-  inquiryId
-,
+  inquiryId,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -16062,7 +16611,7 @@ const INQUIRY_NOTIFICATION = ({
         color: '#059669'
       },
       secondaryCta: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/dashboard/inquiries`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/dashboard/inquiries`),
         text: 'All Inquiries'
       },
       footerNote: `Project Lead #${inquiryId.slice(-6)} • High priority - respond ASAP`
@@ -16070,7 +16619,11 @@ const INQUIRY_NOTIFICATION = ({
     attachments: []
   };
 };
-const CONTACT_CONFIRMATION = ({ name, subject, companyName, contactId ,
+const CONTACT_CONFIRMATION = ({
+  name,
+  subject,
+  companyName,
+  contactId,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -16134,7 +16687,7 @@ const CONTACT_CONFIRMATION = ({ name, subject, companyName, contactId ,
         color: '#10b981'
       },
       secondaryCta: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/support`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/support`),
         text: 'Help Center'
       },
       footerNote: `Ref: ${contactId.slice(-6)} • Reply to this email if you have questions.`
@@ -16142,7 +16695,13 @@ const CONTACT_CONFIRMATION = ({ name, subject, companyName, contactId ,
     attachments: []
   };
 };
-const INQUIRY_CONFIRMATION = ({ name, projectType, budget, timeline, companyName, inquiryId ,
+const INQUIRY_CONFIRMATION = ({
+  name,
+  projectType,
+  budget,
+  timeline,
+  companyName,
+  inquiryId,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -16212,7 +16771,7 @@ const INQUIRY_CONFIRMATION = ({ name, projectType, budget, timeline, companyName
         color: '#059669'
       },
       secondaryCta: {
-        url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/services`)),
+        url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/services`),
         text: 'View Our Services'
       },
       footerNote: `Project Ref: ${inquiryId.slice(-6)} • ${companyName} Team`
@@ -16255,11 +16814,20 @@ const MAGIC_LINK = ({ username, magicUrl, expiryMinutes = 15 }) => ({
 });
 
 /** TRIAL_EXPIRING — Trial period ending soon */
-const TRIAL_EXPIRING = ({ username, daysLeft = 3, planName = 'Pro', upgradeUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaUrl = null, ctaPath = null }) => ({
+const TRIAL_EXPIRING = ({
+  username,
+  daysLeft = 3,
+  planName = 'Pro',
+  upgradeUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaUrl = null,
+  ctaPath = null
+}) => ({
   subject: `⏰ Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
   html: buildEmailHTML({
-      appUrl: _appUrl,
-      applicationName: _appName,
+    appUrl: _appUrl,
+    applicationName: _appName,
     preheader: `Your ${planName} trial is ending soon. Upgrade to keep your features.`,
     title: 'Trial Ending Soon',
     headerBg: '#f59e0b',
@@ -16283,18 +16851,29 @@ const TRIAL_EXPIRING = ({ username, daysLeft = 3, planName = 'Pro', upgradeUrl, 
       text: 'Upgrade Now →',
       color: '#f59e0b'
     },
-    secondaryCTA: { url: ctaUrl || (ctaPath ? (_appUrl + ctaPath) : (`${_appUrl}/pricing`)), text: 'View Plans' },
+    secondaryCTA: {
+      url: ctaUrl || (ctaPath ? _appUrl + ctaPath : `${_appUrl}/pricing`),
+      text: 'View Plans'
+    },
     footerNote: 'You can cancel anytime. No hidden fees.'
   }),
   attachments: []
 });
 
 /** DATA_EXPORT_READY — GDPR data export download ready */
-const DATA_EXPORT_READY = ({ username, downloadUrl, expiryHours = 24, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaUrl = null, ctaPath = null }) => ({
+const DATA_EXPORT_READY = ({
+  username,
+  downloadUrl,
+  expiryHours = 24,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaUrl = null,
+  ctaPath = null
+}) => ({
   subject: 'Your Data Export Is Ready to Download',
   html: buildEmailHTML({
-      appUrl: _appUrl,
-      applicationName: _appName,
+    appUrl: _appUrl,
+    applicationName: _appName,
     preheader: `Your account data export is ready. Download link expires in ${expiryHours}h.`,
     title: 'Data Export Ready',
     headerBg: '#0891b2',
@@ -16320,11 +16899,20 @@ const DATA_EXPORT_READY = ({ username, downloadUrl, expiryHours = 24, appUrl: _a
 });
 
 /** BIRTHDAY_GREETING — Birthday celebration with special discount */
-const BIRTHDAY_GREETING = ({ username, discountCode, discountPercent = 20, offerUrl, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaUrl = null, ctaPath = null }) => ({
+const BIRTHDAY_GREETING = ({
+  username,
+  discountCode,
+  discountPercent = 20,
+  offerUrl,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaUrl = null,
+  ctaPath = null
+}) => ({
   subject: `🎂 Happy Birthday, ${username || 'there'}! A gift from us`,
   html: buildEmailHTML({
-      appUrl: _appUrl,
-      applicationName: _appName,
+    appUrl: _appUrl,
+    applicationName: _appName,
     preheader: `Happy birthday! Enjoy ${discountPercent}% off as our gift to you.`,
     title: 'Happy Birthday!',
     headerBg: '#ec4899',
@@ -16366,8 +16954,8 @@ const TEAM_INVITE = ({
 }) => ({
   subject: `${invitedBy} invited you to join ${teamName}`,
   html: buildEmailHTML({
-      appUrl: _appUrl,
-      applicationName: _appName,
+    appUrl: _appUrl,
+    applicationName: _appName,
     preheader: `You've been invited to join ${teamName} as ${role || 'a member'}.`,
     title: `Join ${teamName}`,
     headerBg: '#10b981',
@@ -17308,14 +17896,17 @@ const emailVerificationTemplate = ({ name, username, verifyLink, expiryHours = 2
  * Sent when: A new user (provider or customer) joins the marketplace
  * Variables: { name, email, dashboardUrl }
  */
-const MARKETPLACE_WELCOME = ({ name, email, dashboardUrl = `${appUrl}/dashboard` ,
+const MARKETPLACE_WELCOME = ({
+  name,
+  email,
+  dashboardUrl = `${appUrl}/dashboard`,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
   ctaPath = null
 }) => {
   const isProvider = name && name.toLowerCase().includes('provider');
-  
+
   return {
     subject: 'Welcome to Local Service Marketplace! 🎉',
     html: buildEmailHTML({
@@ -17336,15 +17927,19 @@ const MARKETPLACE_WELCOME = ({ name, email, dashboardUrl = `${appUrl}/dashboard`
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:8px;">
           <tr><td style="font-size:14px;line-height:24px;">
             <strong style="color:#111827;">Get started:</strong><br/>
-            ${isProvider ? `
+            ${
+              isProvider
+                ? `
               ✔️ Complete your provider profile<br/>
               ✔️ Add your services and rates<br/>
               ✔️ Start receiving customer requests
-            ` : `
+            `
+                : `
               ✔️ Browse local service providers<br/>
               ✔️ Post your first service request<br/>
               ✔️ Get competitive proposals from pros
-            `}
+            `
+            }
           </td></tr>
         </table>
         
@@ -17357,7 +17952,7 @@ const MARKETPLACE_WELCOME = ({ name, email, dashboardUrl = `${appUrl}/dashboard`
         text: 'Go to Dashboard',
         color: '#667eea'
       },
-      footerNote: 'You\'re receiving this email because you created an account with us.'
+      footerNote: "You're receiving this email because you created an account with us."
     }),
     attachments: []
   };
@@ -17452,15 +18047,14 @@ const MARKETPLACE_PASSWORD_RESET = ({ name, resetLink }) => {
  * Sent when: A new service request is posted that matches provider's expertise
  * Variables: { providerName, requestTitle, category, budget, customerName, requestDisplayId, requestUrl }
  */
-const MARKETPLACE_NEW_REQUEST = ({ 
-  providerName, 
-  requestTitle, 
-  category, 
-  budget, 
-  customerName, 
-  requestDisplayId, 
-  requestUrl = `${appUrl}/requests` 
-,
+const MARKETPLACE_NEW_REQUEST = ({
+  providerName,
+  requestTitle,
+  category,
+  budget,
+  customerName,
+  requestDisplayId,
+  requestUrl = `${appUrl}/requests`,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -17518,16 +18112,15 @@ const MARKETPLACE_NEW_REQUEST = ({
  * Sent when: Customer receives a new proposal from a provider
  * Variables: { customerName, providerName, requestTitle, price, estimatedDuration, proposalDisplayId, requestDisplayId, proposalUrl }
  */
-const MARKETPLACE_PROPOSAL_RECEIVED = ({ 
-  customerName, 
-  providerName, 
-  requestTitle, 
-  price, 
-  estimatedDuration, 
-  proposalDisplayId, 
-  requestDisplayId, 
-  proposalUrl = `${appUrl}/dashboard` 
-,
+const MARKETPLACE_PROPOSAL_RECEIVED = ({
+  customerName,
+  providerName,
+  requestTitle,
+  price,
+  estimatedDuration,
+  proposalDisplayId,
+  requestDisplayId,
+  proposalUrl = `${appUrl}/dashboard`,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -17581,15 +18174,14 @@ const MARKETPLACE_PROPOSAL_RECEIVED = ({
  * Sent when: Customer accepts provider's proposal
  * Variables: { providerName, requestTitle, customerName, price, startDate, jobDisplayId, jobUrl }
  */
-const MARKETPLACE_JOB_ASSIGNED = ({ 
-  providerName, 
-  requestTitle, 
-  customerName, 
-  price, 
-  startDate, 
-  jobDisplayId, 
-  jobUrl = `${appUrl}/jobs` 
-,
+const MARKETPLACE_JOB_ASSIGNED = ({
+  providerName,
+  requestTitle,
+  customerName,
+  price,
+  startDate,
+  jobDisplayId,
+  jobUrl = `${appUrl}/jobs`,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -17650,14 +18242,13 @@ const MARKETPLACE_JOB_ASSIGNED = ({
  * Sent when: Provider receives payment for completed job
  * Variables: { providerName, amount, jobTitle, customerName, paymentDisplayId, dashboardUrl }
  */
-const MARKETPLACE_PAYMENT_RECEIVED = ({ 
-  providerName, 
-  amount, 
-  jobTitle, 
-  customerName, 
-  paymentDisplayId, 
-  dashboardUrl = `${appUrl}/dashboard` 
-,
+const MARKETPLACE_PAYMENT_RECEIVED = ({
+  providerName,
+  amount,
+  jobTitle,
+  customerName,
+  paymentDisplayId,
+  dashboardUrl = `${appUrl}/dashboard`,
   appUrl: _appUrl = appUrl,
   applicationName: _appName = applicaionName,
   ctaUrl = null,
@@ -17752,6 +18343,7 @@ module.exports = {
   USER_UPDATED,
   USER_DELETED,
   USER_SUSPENDED,
+  USER_BANNED,
   USER_REINSTATED,
   ROLE_ASSIGNED,
   ROLE_REVOKED,
