@@ -537,7 +537,8 @@ const USER_WELCOME = ({ userId, username, email, verifyLink, timestamp }) => {
         text: 'Verify Email Address',
         color: '#10b981'
       },
-      footerNote: 'If the button doesn\'t work, copy and paste this link into your browser: ' + verifyLink
+      footerNote:
+        "If the button doesn't work, copy and paste this link into your browser: " + verifyLink
     }),
     attachments: []
   };
@@ -672,10 +673,11 @@ const USER_DELETED = ({ userId, username, email, timestamp, reason }) => {
 };
 
 /**
- * USER_SUSPENDED Email Template
- * Sent when: Your account has been temporarily suspended.
+ * Helper function to create suspension or ban emails to reduce duplication.
+ * @private
  */
-const USER_SUSPENDED = ({
+const createSuspensionOrBanEmail = ({
+  type, // 'suspended' or 'banned'
   userId,
   username,
   email,
@@ -685,13 +687,34 @@ const USER_SUSPENDED = ({
   applicationName: _appName = applicaionName,
   ctaPath = null
 }) => {
+  const isSuspended = type === 'suspended';
+
+  const subject = isSuspended ? 'Account Suspended' : 'Account Banned';
+  const preheader = isSuspended
+    ? 'Your account has been temporarily suspended.'
+    : 'Your account has been permanently banned.';
+  const title = subject;
+  const headerText = isSuspended ? '⚠️ Account Suspended' : '🚫 Account Banned';
+  const bodyIntro = isSuspended
+    ? 'Your account has been temporarily suspended.'
+    : 'Your account has been permanently banned due to a violation of our terms of service.';
+  const defaultReason = isSuspended
+    ? 'Policy violation or security concern'
+    : 'Repeated policy violations or security concerns.';
+  const bodyOutro = isSuspended
+    ? 'If you believe this is a mistake, please contact our support team.'
+    : 'This action is permanent and cannot be appealed. If you believe this is a mistake, you may contact our support team, but we cannot guarantee a reversal of this decision.';
+  const footerNote = isSuspended
+    ? 'If you need assistance, our support team is here to help.'
+    : 'This decision is final.';
+
   return {
-    subject: `Account Suspended`,
+    subject,
     html: buildEmailHTML({
-      preheader: `Your account has been temporarily suspended.`,
-      title: 'Account Suspended',
+      preheader,
+      title,
       headerBg: '#dc2626',
-      headerText: '⚠️ Account Suspended',
+      headerText,
       appUrl: _appUrl,
       applicationName: _appName,
       bodyHTML: `
@@ -699,18 +722,18 @@ const USER_SUSPENDED = ({
           Hello <strong>${username || 'User'}</strong>,
         </p>
         <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your account has been temporarily suspended.
+          ${bodyIntro}
         </p>
         
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;color:#7f1d1d;">
             <strong>Reason:</strong><br/>
-            ${reason || 'Policy violation or security concern'}
+            ${reason || defaultReason}
           </td></tr>
         </table>
         
         <p style="margin:24px 0 0 0;color:#4b5563;">
-          If you believe this is a mistake, please contact our support team.
+          ${bodyOutro}
         </p>
       `,
       ctaButton: {
@@ -718,55 +741,23 @@ const USER_SUSPENDED = ({
         text: 'Contact Support',
         color: '#dc2626'
       },
-      footerNote: 'If you need assistance, our support team is here to help.'
+      footerNote
     }),
     attachments: []
   };
 };
 
 /**
+ * USER_SUSPENDED Email Template
+ * Sent when: Your account has been temporarily suspended.
+ */
+const USER_SUSPENDED = props => createSuspensionOrBanEmail({ ...props, type: 'suspended' });
+
+/**
  * USER_BANNED Email Template
  * Sent when: A user's account has been permanently banned.
  */
-const USER_BANNED = ({ userId, username, email, timestamp, reason, appUrl: _appUrl = appUrl, applicationName: _appName = applicaionName, ctaPath = null }) => {
-  return {
-    subject: `Account Banned`,
-    html: buildEmailHTML({
-      preheader: `Your account has been permanently banned.`,
-      title: 'Account Banned',
-      headerBg: '#dc2626',
-      headerText: '🚫 Account Banned',
-      appUrl: _appUrl,
-      applicationName: _appName,
-      bodyHTML: `
-        <p style="margin:0 0 16px 0;">
-          Hello <strong>${username || 'User'}</strong>,
-        </p>
-        <p style="margin:0 0 16px 0;color:#4b5563;">
-          Your account has been permanently banned due to a violation of our terms of service.
-        </p>
-        
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
-          <tr><td style="font-size:14px;color:#7f1d1d;">
-            <strong>Reason:</strong><br/>
-            ${reason || 'Repeated policy violations or security concerns.'}
-          </td></tr>
-        </table>
-        
-        <p style="margin:24px 0 0 0;color:#4b5563;">
-          This action is permanent and cannot be appealed. If you believe this is a mistake, you may contact our support team, but we cannot guarantee a reversal of this decision.
-        </p>
-      `,
-      ctaButton: {
-        url: ctaPath ? (_appUrl + ctaPath) : (_appUrl + '/support'),
-        text: 'Contact Support',
-        color: '#dc2626'
-      },
-      footerNote: 'This decision is final.'
-    }),
-    attachments: []
-  };
-};
+const USER_BANNED = props => createSuspensionOrBanEmail({ ...props, type: 'banned' });
 
 /**
  * USER_REINSTATED Email Template
@@ -1791,13 +1782,17 @@ const ACCOUNT_TERMINATED = ({ name, username, accountId, reason, supportUrl }) =
           Your account has been permanently closed and all associated data has been scheduled for removal.
         </p>
         
-        ${reason ? `
+        ${
+          reason
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:4px;">
           <tr><td style="font-size:14px;color:#7f1d1d;">
             <strong>Reason:</strong><br/>${reason}
           </td></tr>
         </table>
-        ` : ''}
+        `
+            : ''
+        }
         
         <p style="margin:16px 0 0 0;color:#4b5563;">
           If you believe this was done in error, please contact our support team as soon as possible.
@@ -3283,13 +3278,24 @@ const ORG_COMPLIANCE_AUDIT_COMPLETED = ({
 /**
  * otpEmailTemplate - Your One-Time Password (OTP)
  */
-const otpEmailTemplate = ({ name, username, otp, purpose = 'verification', expiryMinutes = 10 }) => {
+const otpEmailTemplate = ({
+  name,
+  username,
+  otp,
+  purpose = 'verification',
+  expiryMinutes = 10
+}) => {
   const displayName = name || username || 'User';
-  const purposeLabel = purpose === 'login' ? 'sign in'
-    : purpose === 'mfa' ? 'two-factor authentication'
-    : purpose === 'reset' ? 'password reset'
-    : purpose === 'verification' ? 'email verification'
-    : purpose;
+  const purposeLabel =
+    purpose === 'login'
+      ? 'sign in'
+      : purpose === 'mfa'
+        ? 'two-factor authentication'
+        : purpose === 'reset'
+          ? 'password reset'
+          : purpose === 'verification'
+            ? 'email verification'
+            : purpose;
   return {
     subject: `Your one-time code: ${otp}`,
     html: buildEmailHTML({
@@ -4726,15 +4732,21 @@ const twoFactorSetupTemplate = ({ name, username, qrCodeUrl, setupLink, secret }
           Open your authenticator app (Google Authenticator, Authy, etc.) and scan the QR code below:
         </p>
 
-        ${qrCodeUrl ? `
+        ${
+          qrCodeUrl
+            ? `
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:16px 0;">
           <tr><td align="center" style="padding:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
             <img src="${qrCodeUrl}" alt="2FA QR Code" width="180" height="180" style="display:block;margin:0 auto;" />
           </td></tr>
         </table>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${secret ? `
+        ${
+          secret
+            ? `
         <p style="margin:16px 0 8px 0;color:#111827;font-weight:600;">Step 2: Or enter the code manually</p>
         <p style="margin:0 0 8px 0;color:#4b5563;">If you can't scan the QR code, enter this secret key in your authenticator app:</p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:8px 0;">
@@ -4742,7 +4754,9 @@ const twoFactorSetupTemplate = ({ name, username, qrCodeUrl, setupLink, secret }
             <code style="font-size:18px;font-weight:700;letter-spacing:4px;color:#7c3aed;font-family:'Courier New',monospace;">${secret}</code>
           </td></tr>
         </table>
-        ` : ''}
+        `
+            : ''
+        }
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:24px 0;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:4px;">
           <tr><td style="font-size:14px;color:#92400e;">
@@ -4751,8 +4765,10 @@ const twoFactorSetupTemplate = ({ name, username, qrCodeUrl, setupLink, secret }
           </td></tr>
         </table>
       `,
-      ctaButton: setupLink ? { url: setupLink, text: 'Complete 2FA Setup', color: '#7c3aed' } : null,
-      footerNote: "Never share your 2FA secret or backup codes with anyone."
+      ctaButton: setupLink
+        ? { url: setupLink, text: 'Complete 2FA Setup', color: '#7c3aed' }
+        : null,
+      footerNote: 'Never share your 2FA secret or backup codes with anyone.'
     }),
     attachments: []
   };
@@ -4831,7 +4847,12 @@ const twoFactorCodeTemplate = ({ username, code }) => {
 const backupCodesTemplate = ({ name, username, codes = [] }) => {
   const displayName = name || username || 'User';
   const codeRows = Array.isArray(codes)
-    ? codes.map(c => `<tr><td style="padding:6px 16px;font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:3px;color:#1e1b4b;">${c}</td></tr>`).join('')
+    ? codes
+        .map(
+          c =>
+            `<tr><td style="padding:6px 16px;font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:3px;color:#1e1b4b;">${c}</td></tr>`
+        )
+        .join('')
     : '';
   return {
     subject: `Your 2FA Backup Codes`,
@@ -4865,7 +4886,7 @@ const backupCodesTemplate = ({ name, username, codes = [] }) => {
         </table>
       `,
       ctaButton: null,
-      footerNote: "Treat backup codes like passwords — keep them private and secure."
+      footerNote: 'Treat backup codes like passwords — keep them private and secure.'
     }),
     attachments: []
   };
