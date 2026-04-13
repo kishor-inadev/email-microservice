@@ -1,91 +1,113 @@
-# Email Microservice - Usage Guide
+# Email Microservice — Usage Guide
 
 ## Overview
 
-This email microservice now supports two modes of operation:
+This email microservice supports two operating modes:
 
-1. **HTTP-only mode** (default) - Direct email sending via HTTP API with MongoDB logging
-2. **Kafka mode** (optional) - Message queue-based email sending with MongoDB logging
+1. **HTTP-only mode** (default, `ENABLE_KAFKA=false`) — Direct email sending via HTTP API
+2. **Kafka mode** (`ENABLE_KAFKA=true`) — Message queue-based email sending
 
-All email details are automatically saved to MongoDB for tracking and auditing.
+Both modes log all emails to MongoDB. The service is multi-app capable: a single deployment can send branded emails on behalf of multiple frontend applications using per-request HTTP headers.
+
+---
 
 ## Configuration
 
 ### Environment Variables
 
 ```bash
-# Enable/Disable Kafka (default: false)
-ENABLE_KAFKA=false
+# ── App / Branding ──────────────────────────────────────────
+APP_URL=http://localhost:3000          # Default base URL for all email links
+FRONTEND_URL=http://localhost:3001     # Alt frontend URL (fallback for APP_URL)
+APPLICATION_NAME=Your Company          # Default app name shown in email footers
 
-# MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017/email-service
-MONGODB_DB_NAME=email-service
-
-# SMTP Configuration
+# ── SMTP ────────────────────────────────────────────────────
 SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_USER=your-email@example.com
 SMTP_PASS=your-smtp-password
 DEFAULT_FROM_EMAIL=noreply@yourcompany.com
 DEFAULT_FROM_NAME=Your Company
+
+# ── MongoDB ─────────────────────────────────────────────────
+MONGODB_URI=mongodb://localhost:27017/email-service
+MONGODB_DB_NAME=email-service
+
+# ── Kafka (optional) ────────────────────────────────────────
+ENABLE_KAFKA=false
+KAFKA_BROKERS=localhost:9092
+KAFKA_GROUP_ID=email-service-group
+KAFKA_TOPIC_EMAIL_SEND=email.send
+KAFKA_TOPIC_EMAIL_SUCCESS=email.success
+KAFKA_TOPIC_EMAIL_FAILED=email.failed
+
+# ── Multi-tenancy (optional) ─────────────────────────────────
+TENANCY_ENABLED=false
+DEFAULT_TENANT_ID=
 ```
 
-## Mode 1: HTTP-Only Mode (Default)
+---
 
-When `ENABLE_KAFKA=false` (or not set), the service operates in HTTP-only mode:
+## Per-Request App Context (Multi-App Support)
 
-### Sending Email
+Because this is a shared microservice, the calling application can override branding and CTA links on every request without changing any configuration.
+
+### HTTP Headers
+
+| Header | Sets | Fallback |
+|--------|------|----------|
+| `x-app` | Application name in email footer | `APPLICATION_NAME` env var |
+| `x-app-url` | Base URL for all CTA and footer links | `APP_URL` env var |
+| `x-path` | Path segment appended to base URL for primary CTA | `null` (template uses its own default path) |
+| `x-tenant-id` or `x-tanent` | Tenant identifier | `DEFAULT_TENANT_ID` env var |
+
+### CTA URL resolution order (highest priority wins)
+
+1. `data.ctaUrl` — caller supplies the complete final URL
+2. `x-path` header — path is appended to the resolved `appUrl`
+3. Template default — each template has a sensible built-in path (e.g. `/login`, `/billing`)
+
+### Example
 
 ```bash
+# Email branded for "Acme" with CTA pointing to Acme's frontend
 curl -X POST http://localhost:3000/send-email \
   -H "Content-Type: application/json" \
+  -H "x-app: Acme Corp" \
+  -H "x-app-url: https://app.acme.com" \
+  -H "x-path: /auth/reset-password" \
   -d '{
-    "to": "user@example.com",
-    "templateId": "USER_CREATED",
-    "data": {
-      "username": "John Doe",
-      "email": "user@example.com",
-      "companyName": "Acme Corp"
-    }
+    "to": "user@acme.com",
+    "templateId": "PASSWORD_RESET_REQUESTED",
+    "data": { "username": "Alice", "resetToken": "tok123", "expiryHours": 1 }
   }'
 ```
 
-**Response:**
+Result: CTA button links to `https://app.acme.com/auth/reset-password`, footer says "Acme Corp".
+
+---
+
+## HTTP API
+
+### POST `/send-email`
+
+Queues the email (or sends immediately when Kafka is disabled).
+
+**Request:**
+
 ```json
 {
-  "message": "Email sent successfully",
-  "messageId": "<unique-message-id>",
-  "requestId": "abc123"
+  "to": "user@example.com",
+  "templateId": "USER_CREATED",
+  "data": {
+    "username": "John Doe"
+  },
+  "idempotencyKey": "user-123-welcome"
 }
 ```
 
-### What Happens:
-1. Request is validated
-2. Email details are saved to MongoDB with status: "queued"
-3. Email is sent immediately via SMTP
-4. MongoDB is updated with status: "sent" and message details
-5. Response is returned to the client
+**Response `202`:**
 
-## Mode 2: Kafka Mode
-
-When `ENABLE_KAFKA=true`, the service uses Kafka for message queuing:
-
-### Sending Email
-
-```bash
-curl -X POST http://localhost:3000/send-email \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "user@example.com",
-    "templateId": "USER_CREATED",
-    "data": {
-      "username": "John Doe",
-      "email": "user@example.com"
-    }
-  }'
-```
-
-**Response:**
 ```json
 {
   "message": "Email queued for processing",
@@ -93,361 +115,296 @@ curl -X POST http://localhost:3000/send-email \
 }
 ```
 
-### What Happens:
-1. Request is validated
-2. Email details are saved to MongoDB with status: "queued"
-3. Message is published to Kafka topic: `email.send`
-4. Kafka consumer picks up the message
-5. Email is sent via SMTP
-6. MongoDB is updated with status: "sent" or "failed"
-7. Success/failure message is published to Kafka topics: `email.success` or `email.failed`
+### POST `/send-email/sync`
 
-## MongoDB Integration
+Sends the email immediately and waits for the SMTP response.
 
-### Email Log Schema
+**Response `200`:**
 
-Every email is logged to MongoDB with the following structure:
+```json
+{
+  "message": "Email sent successfully",
+  "messageId": "<smtp-message-id>",
+  "requestId": "abc123"
+}
+```
+
+### GET `/health`
+
+Returns service health, SMTP connectivity status, and circuit breaker state.
+
+### GET `/metrics`
+
+Returns in-memory counters and MongoDB aggregate counts by status.
+
+### GET `/email-logs`
+
+Query persisted email logs.
+
+**Query parameters:**
+
+| Param | Description |
+|-------|-------------|
+| `status` | `queued` \| `sent` \| `failed` \| `retrying` |
+| `startDate` | ISO 8601 start of date range |
+| `endDate` | ISO 8601 end of date range |
+| `limit` | Max records to return (default: `100`) |
+| `skip` | Records to skip for pagination |
+
+```bash
+curl "http://localhost:3000/email-logs?status=failed&limit=50"
+```
+
+### GET `/email-logs/:requestId`
+
+Retrieve a single email log by request ID.
+
+---
+
+## Payload Reference
+
+```json
+{
+  "to":             "user@example.com",
+  "from":           "noreply@yourapp.com",
+  "templateId":     "PAYMENT_FAILED",
+  "data":           {},
+  "idempotencyKey": "pay-fail-txn-999",
+  "cc":             "manager@yourapp.com",
+  "bcc":            ["audit@yourapp.com"],
+  "attachments": [
+    {
+      "filename":    "invoice.pdf",
+      "content":     "<base64>",
+      "contentType": "application/pdf",
+      "encoding":    "base64"
+    }
+  ]
+}
+```
+
+`idempotencyKey` accepts alphanumeric characters, hyphens, and underscores (e.g. UUIDs work).
+
+---
+
+## Kafka Integration
+
+### Sending via Kafka producer
 
 ```javascript
+await producer.send({
+  topic: 'email.send',
+  messages: [{
+    key: userId,   // optional — used for message ordering
+    value: JSON.stringify({
+      to: 'user@example.com',
+      templateId: 'ORDER_SHIPPED',
+      data: {
+        username: 'Jane',
+        orderId: 'ORD-001',
+        trackingLink: 'https://shipping.example.com/track/XYZ',
+        // Per-app branding (replaces HTTP headers for Kafka callers)
+        appUrl: 'https://myshop.com',
+        applicationName: 'My Shop',
+        ctaPath: `/orders/ORD-001/track`
+      },
+      idempotencyKey: 'order-ORD-001-shipped'
+    })
+  }]
+});
+```
+
+### Listening for results
+
+```javascript
+// topic: email.success
 {
-  "requestId": "abc123",
-  "to": ["user@example.com"],
-  "from": "noreply@company.com",
-  "cc": [],
-  "bcc": [],
-  "template": "USER_CREATED",
+  "originalMessage": { "to": "...", "templateId": "..." },
+  "result": { "messageId": "<smtp-id>", "accepted": ["user@example.com"] }
+}
+
+// topic: email.failed
+{
+  "originalMessage": { "to": "...", "templateId": "..." },
+  "error": { "message": "SMTP connection refused" },
+  "retryCount": 3
+}
+```
+
+---
+
+## Template Data Reference
+
+All templates accept the following **optional** branding fields in `data`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `appUrl` | string | Base URL for CTA buttons and links (overrides `x-app-url` header) |
+| `applicationName` | string | Brand name in email footer (overrides `x-app` header) |
+| `ctaPath` | string | Path appended to `appUrl` for the primary CTA |
+| `ctaUrl` | string | Full CTA URL — highest priority, overrides everything |
+
+Template-specific fields (like `resetLink`, `verifyLink`, `invoiceUrl`) always take precedence over `ctaUrl` when the template explicitly uses them.
+
+### Common template examples
+
+#### User created / welcome
+
+```json
+{
   "templateId": "USER_CREATED",
-  "subject": "Welcome to Company",
-  "data": { ... },
-  "status": "sent", // queued, sent, failed, retrying
-  "messageId": "<smtp-message-id>",
-  "error": null,
-  "retryCount": 0,
+  "data": {
+    "username": "Alice",
+    "email": "alice@example.com",
+    "userId": "usr_123",
+    "timestamp": "2026-04-13T10:00:00Z"
+  }
+}
+```
+
+#### Password reset
+
+```json
+{
+  "templateId": "PASSWORD_RESET_REQUESTED",
+  "data": {
+    "username": "Alice",
+    "resetToken": "tok_abc123",
+    "resetLink": "https://app.com/reset?token=tok_abc123",
+    "expiryHours": 1
+  }
+}
+```
+
+#### Email verification
+
+```json
+{
+  "templateId": "EMAIL_VERIFIED",
+  "data": {
+    "username": "Alice",
+    "verifiedItem": "alice@example.com"
+  }
+}
+```
+
+#### Payment failed
+
+```json
+{
+  "templateId": "PAYMENT_FAILED",
+  "data": {
+    "username": "Alice",
+    "amount": "$49.99",
+    "transactionId": "txn_999",
+    "paymentMethod": "Visa ending 4242",
+    "date": "2026-04-13T10:00:00Z",
+    "failureReason": "Insufficient funds"
+  }
+}
+```
+
+#### Order shipped
+
+```json
+{
+  "templateId": "ORDER_SHIPPED",
+  "data": {
+    "username": "Alice",
+    "orderId": "ORD-001",
+    "carrier": "FedEx",
+    "trackingNumber": "1234567890",
+    "trackingLink": "https://fedex.com/track/1234567890",
+    "estimatedDelivery": "2026-04-16"
+  }
+}
+```
+
+#### Org member invited
+
+```json
+{
+  "templateId": "ORG_MEMBER_INVITED",
+  "data": {
+    "orgName": "Acme Corp",
+    "invitedBy": "Bob (bob@acme.com)",
+    "inviteLink": "https://app.acme.com/invite/accept?token=inv_xyz",
+    "expiryHours": 48
+  }
+}
+```
+
+---
+
+## MongoDB Email Log Schema
+
+```json
+{
+  "requestId":      "abc123",
+  "to":             ["user@example.com"],
+  "from":           "noreply@company.com",
+  "cc":             [],
+  "bcc":            [],
+  "template":       "USER_CREATED",
+  "templateId":     "USER_CREATED",
+  "subject":        "Welcome to Company",
+  "data":           {},
+  "status":         "sent",
+  "messageId":      "<smtp-message-id>",
+  "error":          null,
+  "retryCount":     0,
   "idempotencyKey": "user-123-welcome",
   "metadata": {
-    "accepted": ["user@example.com"],
-    "rejected": [],
+    "accepted":       ["user@example.com"],
+    "rejected":       [],
     "processingTime": 1234
   },
-  "sentAt": "2024-01-15T10:30:00.000Z",
-  "failedAt": null,
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:05.000Z"
+  "sentAt":         "2026-04-13T10:30:00.000Z",
+  "failedAt":       null,
+  "createdAt":      "2026-04-13T10:30:00.000Z",
+  "updatedAt":      "2026-04-13T10:30:05.000Z"
 }
 ```
 
-### Querying Email Logs
-
-#### Get All Email Logs
-
-```bash
-curl http://localhost:3000/email-logs
-```
-
-**Query Parameters:**
-- `status` - Filter by status (queued, sent, failed, retrying)
-- `startDate` - Filter by date range (ISO 8601)
-- `endDate` - Filter by date range (ISO 8601)
-
-## Available Email Templates
-
-### Marketplace Templates (7)
-
-#### 1. MARKETPLACE_WELCOME
-Welcome email for new marketplace users (providers or customers)
-
-```javascript
-{
-  "to": "user@example.com",
-  "templateId": "MARKETPLACE_WELCOME",
-  "data": {
-    "name": "John Provider",
-    "email": "user@example.com",
-    "dashboardUrl": "https://yourmarketplace.com/dashboard"
-  }
-}
-```
-
-#### 2. MARKETPLACE_NEW_REQUEST
-Notify provider about new service request
-
-```javascript
-{
-  "to": "provider@example.com",
-  "templateId": "MARKETPLACE_NEW_REQUEST",
-  "data": {
-    "providerName": "Jane Smith",
-    "requestTitle": "Need plumbing service",
-    "category": "Plumbing",
-    "budget": 150,
-    "customerName": "Bob Customer",
-    "requestDisplayId": "REQ-12345",
-    "requestUrl": "https://yourmarketplace.com/requests/12345"
-  }
-}
-```
-
-#### 3. MARKETPLACE_PROPOSAL_RECEIVED
-Notify customer about new proposal
-
-```javascript
-{
-  "to": "customer@example.com",
-  "templateId": "MARKETPLACE_PROPOSAL_RECEIVED",
-  "data": {
-    "customerName": "Bob Customer",
-    "providerName": "Jane Smith",
-    "requestTitle": "Need plumbing service",
-    "price": 120,
-    "estimatedDuration": "2-3 hours",
-    "proposalDisplayId": "PROP-789",
-    "requestDisplayId": "REQ-12345",
-    "proposalUrl": "https://yourmarketplace.com/proposals/789"
-  }
-}
-```
-
-#### 4. MARKETPLACE_JOB_ASSIGNED
-Congratulate provider on proposal acceptance
-
-```javascript
-{
-  "to": "provider@example.com",
-  "templateId": "MARKETPLACE_JOB_ASSIGNED",
-  "data": {
-    "providerName": "Jane Smith",
-    "requestTitle": "Need plumbing service",
-    "customerName": "Bob Customer",
-    "price": 120,
-    "startDate": "2026-04-10",
-    "jobDisplayId": "JOB-456",
-    "jobUrl": "https://yourmarketplace.com/jobs/456"
-  }
-}
-```
-
-#### 5. MARKETPLACE_PAYMENT_RECEIVED
-Notify provider of payment
-
-```javascript
-{
-  "to": "provider@example.com",
-  "templateId": "MARKETPLACE_PAYMENT_RECEIVED",
-  "data": {
-    "providerName": "Jane Smith",
-    "amount": 120,
-    "jobTitle": "Plumbing Service - Fix Kitchen Sink",
-    "customerName": "Bob Customer",
-    "paymentDisplayId": "PAY-999",
-    "dashboardUrl": "https://yourmarketplace.com/dashboard"
-  }
-}
-```
-
-#### 6. MARKETPLACE_EMAIL_VERIFICATION
-Email verification for marketplace
-
-```javascript
-{
-  "to": "user@example.com",
-  "templateId": "MARKETPLACE_EMAIL_VERIFICATION",
-  "data": {
-    "name": "John",
-    "verificationLink": "https://yourmarketplace.com/verify?token=abc123"
-  }
-}
-```
-
-#### 7. MARKETPLACE_PASSWORD_RESET
-Password reset for marketplace
-
-```javascript
-{
-  "to": "user@example.com",
-  "templateId": "MARKETPLACE_PASSWORD_RESET",
-  "data": {
-    "name": "John",
-    "resetLink": "https://yourmarketplace.com/reset-password?token=xyz789"
-  }
-}
-```
-
-### General Templates (287+)
-
-The service includes 287+ general-purpose templates for:
-- User Management (USER_CREATED, USER_WELCOME, USER_UPDATED, etc.)
-- Authentication (PASSWORD_RESET_REQUESTED, EMAIL_VERIFIED, MFA_ENABLED, etc.)
-- E-commerce (ORDER_CREATED, ORDER_SHIPPED, ORDER_DELIVERED, etc.)
-- Payments (PAYMENT_SUCCESS, INVOICE_GENERATED, SUBSCRIPTION_RENEWED, etc.)
-- Organization (ORG_CREATED, ORG_MEMBER_INVITED, ORG_ROLE_ASSIGNED, etc.)
-- And many more...
-
-For a complete list, see the exported templates in `src/templates/emailTemplate.js`
-- `limit` - Number of records to return (default: 100)
-- `skip` - Number of records to skip (pagination)
-- `sort` - Sort order (JSON string, e.g., `{"createdAt": -1}`)
-
-**Example:**
-```bash
-# Get failed emails from the last 24 hours
-curl "http://localhost:3000/email-logs?status=failed&startDate=2024-01-14T00:00:00Z&limit=50"
-
-# Get all sent emails (paginated)
-curl "http://localhost:3000/email-logs?status=sent&limit=100&skip=0"
-```
-
-**Response:**
-```json
-{
-  "logs": [
-    {
-      "requestId": "abc123",
-      "to": ["user@example.com"],
-      "status": "sent",
-      "sentAt": "2024-01-15T10:30:00.000Z",
-      ...
-    }
-  ],
-  "total": 150,
-  "page": 1,
-  "pages": 2
-}
-```
-
-#### Get Single Email Log
-
-```bash
-curl http://localhost:3000/email-logs/abc123
-```
-
-**Response:**
-```json
-{
-  "requestId": "abc123",
-  "to": ["user@example.com"],
-  "from": "noreply@company.com",
-  "status": "sent",
-  "messageId": "<smtp-message-id>",
-  "sentAt": "2024-01-15T10:30:00.000Z",
-  ...
-}
-```
-
-### Metrics with Database Stats
-
-```bash
-curl http://localhost:3000/metrics
-```
-
-**Response:**
-```json
-{
-  "metrics": {
-    "emails_sent_total": 150,
-    "emails_failed_total": 5,
-    "emails_retried_total": 12,
-    "emails_processed_total": 155,
-    "service_uptime_ms": 3600000,
-    "service_uptime_seconds": 3600
-  },
-  "database": {
-    "total": 155,
-    "sent": 150,
-    "failed": 5,
-    "queued": 0,
-    "retrying": 0
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
-}
-```
-
-## Email Templates
-
-### Available Templates
-
-1. **USER_CREATED** - Welcome email for new users
-2. **PASSWORD_RESET** - Password reset email
-3. **ORDER_SUCCESS** - Order confirmation
-4. **CUSTOM_GENERIC_TEMPLATE** - Custom content template
-
-### Example: Send Welcome Email
-
-```bash
-curl -X POST http://localhost:3000/send-email \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "user@example.com",
-    "templateId": "USER_CREATED",
-    "data": {
-      "username": "John Doe",
-      "email": "user@example.com",
-      "activationUrl": "https://app.com/activate?token=abc123",
-      "companyName": "Acme Corp"
-    },
-    "idempotencyKey": "user-123-welcome"
-  }'
-```
+---
 
 ## Starting the Service
 
-### Development Mode (HTTP-only with MongoDB)
+### Development (HTTP-only)
 
 ```bash
-# Install dependencies
-npm install
-
-# Set up environment
 cp .env.example .env
-# Edit .env and set ENABLE_KAFKA=false
+# Set ENABLE_KAFKA=false in .env
 
-# Start MongoDB locally
-# Option 1: Using Docker
-docker run -d -p 27017:27017 --name mongodb mongo:7
-
-# Option 2: Using docker-compose
-docker-compose up -d
-
-# Start the service
+docker run -d -p 27017:27017 --name mongodb mongo:7   # or use docker-compose
 npm run dev
 ```
 
-### Production Mode with Kafka
+### Development (with Kafka)
 
 ```bash
-# Edit .env and set ENABLE_KAFKA=true
-# Set Kafka broker URLs
-ENABLE_KAFKA=true
-KAFKA_BROKERS=kafka1:9092,kafka2:9092
+# Set ENABLE_KAFKA=true in .env
+docker-compose up -d
+npm run dev
+```
 
-# Start with PM2
+### Production (PM2)
+
+```bash
 pm2 start ecosystem.config.js --env production
 ```
 
-## Docker Deployment
-
-### HTTP-only Mode
+### Production (Docker)
 
 ```bash
-docker-compose up
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-This starts:
-- MongoDB (port 27017)
-- MailHog SMTP server (port 1025, UI: 8025)
-- Redis (port 6379)
-- Email service (port 3100)
-
-### Kafka Mode
-
-Update `docker-compose.yml` to add Kafka services and set `ENABLE_KAFKA=true`, then:
-
-```bash
-docker-compose up
-```
+---
 
 ## Idempotency
 
-Prevent duplicate emails by providing an `idempotencyKey`:
+Sending the same `idempotencyKey` within the TTL window (default: 1 hour) returns the cached result without re-sending.
 
 ```bash
 curl -X POST http://localhost:3000/send-email \
@@ -455,18 +412,18 @@ curl -X POST http://localhost:3000/send-email \
   -d '{
     "to": "user@example.com",
     "templateId": "USER_CREATED",
-    "data": { ... },
-    "idempotencyKey": "user-123-welcome"
+    "data": { "username": "Alice" },
+    "idempotencyKey": "user-alice-123-welcome"
   }'
 ```
 
-If the same `idempotencyKey` is used within the TTL period (default: 1 hour), the email won't be sent again.
+Repeating this call within 1 hour returns the same `requestId` without sending another email.
+
+---
 
 ## Error Handling
 
-### Failed Email Example
-
-If an email fails to send, it's logged to MongoDB:
+### Failed email log entry
 
 ```json
 {
@@ -476,58 +433,26 @@ If an email fails to send, it's logged to MongoDB:
     "message": "SMTP connection refused",
     "code": "ECONNREFUSED"
   },
-  "failedAt": "2024-01-15T10:30:00.000Z",
+  "failedAt": "2026-04-13T10:30:00.000Z",
   "retryCount": 3
 }
 ```
 
-### Retry Logic (Kafka Mode Only)
+Kafka mode retries failed emails up to 3 times with exponential backoff before publishing to `email.failed`.
 
-In Kafka mode, failed emails are automatically retried up to 3 times with exponential backoff.
+---
 
 ## Monitoring
 
-### Health Check
-
 ```bash
+# Service health + circuit breaker state
 curl http://localhost:3000/health
-```
 
-### View Email Logs
+# In-memory counters + DB aggregate
+curl http://localhost:3000/metrics
 
-```bash
-# View all logs
+# Application logs
 tail -f logs/combined.log
-
-# View errors only
 tail -f logs/error.log
 ```
 
-### Query Database Directly
-
-```bash
-# Connect to MongoDB
-mongo mongodb://localhost:27017/email-service
-
-# Find recent emails
-db.emaillogs.find().sort({createdAt: -1}).limit(10)
-
-# Count by status
-db.emaillogs.aggregate([
-  { $group: { _id: "$status", count: { $sum: 1 } } }
-])
-```
-
-## Switching Between Modes
-
-Simply change the `ENABLE_KAFKA` environment variable and restart:
-
-```bash
-# Switch to HTTP-only mode
-ENABLE_KAFKA=false npm run dev
-
-# Switch to Kafka mode
-ENABLE_KAFKA=true npm run dev
-```
-
-All email logs remain in MongoDB regardless of the mode used.

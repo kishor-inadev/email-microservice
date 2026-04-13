@@ -86,6 +86,15 @@ class KafkaConsumer {
 
       metrics.kafkaMessagesConsumed.inc({ topic });
 
+      // Build appContext from data fields (Kafka has no HTTP headers).
+      // Callers can embed data.appUrl, data.applicationName, data.ctaPath in the payload.
+      const payloadData = emailPayload.data || {};
+      emailPayload.appContext = {
+        appUrl:          payloadData.appUrl          || env.APP_URL,
+        applicationName: payloadData.applicationName || env.APPLICATION_NAME,
+        ctaPath:         payloadData.ctaPath         || null,
+      };
+
       logger.info('Processing email from Kafka', {
         requestId: emailPayload.requestId,
         to: emailService.sanitizeEmailForLog(emailPayload.to),
