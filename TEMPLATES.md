@@ -3318,6 +3318,41 @@ Notifies provider that payment was received.
 
 ---
 
+### `MARKETPLACE_PROVIDER_APPROVED`
+Sent when an admin approves a provider application.
+
+```json
+{
+  "to": "provider@example.com",
+  "templateId": "MARKETPLACE_PROVIDER_APPROVED",
+  "data": {
+    "businessName": "Jane's Plumbing",
+    "email": "provider@example.com",
+    "dashboardUrl": "https://marketplace.com/provider/dashboard"
+  }
+}
+```
+
+---
+
+### `MARKETPLACE_PROVIDER_REJECTED`
+Sent when an admin rejects a provider application.
+
+```json
+{
+  "to": "provider@example.com",
+  "templateId": "MARKETPLACE_PROVIDER_REJECTED",
+  "data": {
+    "businessName": "Jane's Plumbing",
+    "email": "provider@example.com",
+    "reason": "Your application did not meet our current provider requirements.",
+    "supportUrl": "https://marketplace.com/contact"
+  }
+}
+```
+
+---
+
 ## 17. Legacy Templates
 
 These camelCase templates pre-date the uppercase naming convention. They still work but prefer the uppercase equivalents where available.
@@ -3529,6 +3564,8 @@ These camelCase templates pre-date the uppercase naming convention. They still w
 | `MARKETPLACE_PROPOSAL_RECEIVED` | Marketplace | `customerName`, `providerName`, `requestTitle`, `price`, `proposalDisplayId`, `proposalUrl` |
 | `MARKETPLACE_JOB_ASSIGNED` | Marketplace | `providerName`, `requestTitle`, `customerName`, `price`, `jobDisplayId`, `jobUrl` |
 | `MARKETPLACE_PAYMENT_RECEIVED` | Marketplace | `providerName`, `amount`, `jobTitle`, `customerName`, `dashboardUrl` |
+| `MARKETPLACE_PROVIDER_APPROVED` | Marketplace | `businessName`, `email`, `dashboardUrl` |
+| `MARKETPLACE_PROVIDER_REJECTED` | Marketplace | `businessName`, `email`, `reason`, `supportUrl` |
 | `ORDER_RETURNED` | Order | `username`, `orderId`, `returnReason`, `returnDate`, `refundAmount` |
 | `SERVER_RESTARTED` | System | `serverName`, `restartReason`, `restartedAt`, `uptime`, `services` |
 | `SERVER_OVERLOADED` | System | `serverName`, `cpuUsage`, `memoryUsage`, `diskUsage`, `detectedAt`, `threshold`, `recommendation` |
