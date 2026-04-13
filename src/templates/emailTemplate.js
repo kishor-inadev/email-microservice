@@ -18318,6 +18318,120 @@ const MARKETPLACE_PAYMENT_RECEIVED = ({
   };
 };
 
+/**
+ * MARKETPLACE_PROVIDER_APPROVED — Sent when a provider application is approved
+ * Variables: { businessName, email, dashboardUrl }
+ */
+const MARKETPLACE_PROVIDER_APPROVED = ({
+  businessName,
+  email,
+  dashboardUrl = `${appUrl}/provider/dashboard`,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaUrl = null,
+  ctaPath = null
+}) => ({
+  subject: '🎉 Congratulations! Your Provider Application is Approved',
+  html: buildEmailHTML({
+    appUrl: _appUrl,
+    applicationName: _appName,
+    preheader: `Your provider application for "${businessName}" has been approved. Start receiving customer requests!`,
+    title: 'Provider Application Approved',
+    headerBg: '#10b981',
+    headerText: '✅ Application Approved',
+    bodyHTML: `
+      <p style="margin:0 0 16px 0;">
+        Hello <strong>${businessName || 'Provider'}</strong>,
+      </p>
+      <p style="margin:0 0 16px 0;color:#4b5563;">
+        We're thrilled to let you know that your provider application has been <strong style="color:#10b981;">approved</strong>!
+        You are now a verified service provider on Local Service Marketplace.
+      </p>
+
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+        style="margin:24px 0;padding:20px;background:#d1fae5;border-left:4px solid #10b981;border-radius:8px;">
+        <tr><td style="font-size:14px;line-height:26px;">
+          <strong style="color:#065f46;">What's next:</strong><br/>
+          ✔️ Complete your provider profile<br/>
+          ✔️ Set your availability and service areas<br/>
+          ✔️ Browse and respond to customer service requests<br/>
+          ✔️ Build your reputation with great reviews
+        </td></tr>
+      </table>
+
+      <p style="margin:0 0 16px 0;color:#4b5563;">
+        Customers in your area can now discover and contact you. Head to your dashboard to get started.
+      </p>
+    `,
+    ctaButton: {
+      url: ctaUrl || dashboardUrl,
+      text: 'Go to Provider Dashboard',
+      color: '#10b981'
+    },
+    footerNote: "You're receiving this email because your provider application was reviewed."
+  }),
+  attachments: []
+});
+
+/**
+ * MARKETPLACE_PROVIDER_REJECTED — Sent when a provider application is rejected
+ * Variables: { businessName, email, reason, supportUrl }
+ */
+const MARKETPLACE_PROVIDER_REJECTED = ({
+  businessName,
+  email,
+  reason,
+  supportUrl = `${appUrl}/contact`,
+  appUrl: _appUrl = appUrl,
+  applicationName: _appName = applicaionName,
+  ctaUrl = null,
+  ctaPath = null
+}) => ({
+  subject: 'Update on Your Provider Application',
+  html: buildEmailHTML({
+    appUrl: _appUrl,
+    applicationName: _appName,
+    preheader: `We have an update regarding your provider application for "${businessName}".`,
+    title: 'Provider Application Update',
+    headerBg: '#dc2626',
+    headerText: '📋 Application Update',
+    bodyHTML: `
+      <p style="margin:0 0 16px 0;">
+        Hello <strong>${businessName || 'Applicant'}</strong>,
+      </p>
+      <p style="margin:0 0 16px 0;color:#4b5563;">
+        Thank you for applying to become a service provider on Local Service Marketplace.
+        After reviewing your application, we are unable to approve it at this time.
+      </p>
+
+      ${reason ? `
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+        style="margin:24px 0;padding:20px;background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;">
+        <tr><td>
+          <strong style="color:#991b1b;font-size:14px;">Reason:</strong>
+          <p style="margin:8px 0 0 0;color:#374151;font-size:14px;">${reason}</p>
+        </td></tr>
+      </table>
+      ` : ''}
+
+      <p style="margin:0 0 16px 0;color:#4b5563;">
+        If you believe this decision was made in error, or if you would like more information about
+        how to reapply in the future, please don't hesitate to contact our support team.
+      </p>
+      <p style="margin:0;color:#4b5563;">
+        We appreciate your interest in joining our platform.
+      </p>
+    `,
+    ctaButton: {
+      url: ctaUrl || supportUrl,
+      text: 'Contact Support',
+      color: '#dc2626'
+    },
+    footerNote: "You're receiving this email because your provider application was reviewed."
+  }),
+  attachments: []
+});
+
 module.exports = {
   // Marketplace-specific templates
   MARKETPLACE_WELCOME,
@@ -18327,6 +18441,8 @@ module.exports = {
   MARKETPLACE_PROPOSAL_RECEIVED,
   MARKETPLACE_JOB_ASSIGNED,
   MARKETPLACE_PAYMENT_RECEIVED,
+  MARKETPLACE_PROVIDER_APPROVED,
+  MARKETPLACE_PROVIDER_REJECTED,
 
   // New modern templates
   MAGIC_LINK,
